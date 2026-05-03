@@ -1,11 +1,11 @@
-clear all; clc;
+clear all;
 cd(fileparts(mfilename('fullpath')));
 
-% CSV_PATH = '../../MPXY150Z10';  DogMode = 4; ContactThreshold = 20;
-% CSV_PATH = '../../GO2Stairs';  DogMode = 99; ContactThreshold = 50;
-CSV_PATH = '../../GO2Flat';  DogMode = 99; ContactThreshold = 50;
+CSV_PATH = '../../Data/MPXY150Z10';  DogMode = 4; ContactThreshold = 20; ZoomTime = [0,410];
+% CSV_PATH = '../../Data/GO2Stairs';  DogMode = 99; ContactThreshold = 50; ZoomTime = [0,98];
+% CSV_PATH = '../../Data/GO2Flat';  DogMode = 99; ContactThreshold = 50; ZoomTime = [0,140];
 
-used_lines = 390000;
+used_lines = 200000;
 
 data = readmatrix(CSV_PATH);
 N = size(data, 1);
@@ -83,8 +83,13 @@ clear inekf_legged_core_mex
 fprintf('[DONE] frames=%d\n', k);
 
 % figure(1); clf; 
+
+FigureScale = [0 0 900 600];
+WordSize = 16;
 hold on; grid on;
-plot(odom_log(range,1), odom_log(range,2), 'b-');
-plot(odom_log(range,1), odom_log(range,3), 'r-');
+plot(odom_log(range,1), -odom_log(range,2), 'b-');
+plot(odom_log(range,1), -odom_log(range,3), 'r-');
 plot(odom_log(range,1), odom_log(range,4), 'g-');
-legend('X', 'Y', 'Z','X-IEKF', 'Y-IEKF', 'Z-IEKF');
+legend('CAPO-X', 'CAPO-Y', 'CAPO-Z','InEKF-X', 'InEKF-Y', 'InEKF-Z','Location','northeast','FontSize', WordSize);
+title('Accuracy Comparision on 3D Path between CAPO and InEKF','FontSize', WordSize);
+xlim(ZoomTime)

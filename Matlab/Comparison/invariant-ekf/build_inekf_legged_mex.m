@@ -5,6 +5,7 @@ src_dir   = fullfile(this_dir, 'src');
 
 % Correct the the path to your Eigen !!!!!!!!!!!!!!!!!
 eigen_dir = '/home/smx/WorkSpace/Libraries/eigen-5.0.0';
+% eigen_dir = 'D:\Libraries\eigen-5.0.0';
 
 srcs = { ...
     fullfile(this_dir, 'inekf_legged_core_mex.cpp'), ...

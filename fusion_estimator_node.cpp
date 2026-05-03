@@ -31,6 +31,7 @@ public:
         this->get_parameter_or("odom_frame", odom_frame_id, std::string("odom"));
         this->get_parameter_or("base_frame", child_frame_id, std::string("base_link"));
         this->get_parameter_or("base_frame_2d", child_frame_2d_id, std::string("base_link_2D"));
+        this->get_parameter_or("RobotType", robot_type_, std::string("Leg"));
 
         this->get_parameter_or("imu_data_enable", imu_data_enable, true);
         this->get_parameter_or("leg_pos_enable", leg_pos_enable, true);
@@ -67,7 +68,7 @@ public:
         status[IndexJointsRPYEnable]          = leg_ori_enable ? 1.0 : 0.0;
         status[IndexSlopeEstimationEnable]       = slope_mode_enable ? 1.0 : 0.0;
         // Threshold/Weight
-        status[IndexLegFootForceThreshold]       = -1.0;
+        status[IndexLegFootForceThreshold]       = -40.0;
         status[IndexLegMinStairHeight]           = min_stair_height;
         status[IndexStairHeightFogotten]         = stair_height_fogotten;
         status[IndexLegOrientationInitialWeight] = leg_ori_init_weight;
@@ -75,6 +76,16 @@ public:
 
 
         fe_.fusion_estimator_status(status);
+        
+        if (robot_type_ == "Wheel")
+        {
+            status[IndexInOrOut] = 98;
+            fe_.fusion_estimator_status(status);
+        }
+        else{
+            status[IndexInOrOut] = 99;
+            fe_.fusion_estimator_status(status);
+        }
 
         /* ────────────── Create ROS communication interfaces ────────────── */
         go2_imu_sub = this->create_subscription<sensor_msgs::msg::Imu>(sub_imu_topic, 10, std::bind(&FusionEstimatorNode::imu_callback, this, std::placeholders::_1));
@@ -159,7 +170,7 @@ private:
     nav_msgs::msg::Odometry SMXFE_odom;
     nav_msgs::msg::Odometry SMXFE_odom_2D;
 
-    std::string odom_frame_id, child_frame_id, child_frame_2d_id;
+    std::string odom_frame_id, child_frame_id, child_frame_2d_id, robot_type_;
     bool imu_data_enable, leg_pos_enable, leg_vel_enable, leg_ori_enable, slope_mode_enable;
     bool msg_received[2] = {0,0};
     double foot_force_threshold, min_stair_height, stair_height_fogotten;
@@ -199,73 +210,88 @@ private:
     {
         if (st_.imu.timestamp <= 0.0) return; 
         const auto& arr = msg->data;
-        if (arr.size() < 28) return;
+        const size_t n = arr.size();
 
-        /*
-        * ------ Joint index mapping for point-foot mode -------
-        * -------------- 点足模式下的关节索引映射 ----------------
-        * The incoming joint topic is assumed to contain 12 actuated leg joints:
-        * 
-        *   leg0: motors 0,1,2
-        *   leg1: motors 4,5,6
-        *   leg2: motors 8,9,10
-        *   leg3: motors 12,13,14
-        * 
-        * 当前 joint topic 默认只包含 12 个腿部关节：
-        * 
-        *   第 0 条腿：0,1,2 号电机
-        *   第 1 条腿：4,5,6 号电机
-        *   第 2 条腿：8,9,10 号电机
-        *   第 3 条腿：12,13,14 号电机
-        * 
-        * ---------------- Joint topic layout ----------------
-        * ------------------ 关节话题数据布局 ---=-------------
-        * 
-        * data[ 0..11] : 12 joint positions q
-        * data[12..23] : 12 joint velocities dq
-        * data[24..27] : 4 contact-related values (for example foot-force or contact confidence)
-        *
-        * If wheel motors are available, the layout should be extended to include
-        * motors 3, 7, 11, 15, and the input msg should be data[0..15]--q, data[16..31]--dq, data[32..48]--tau,.
-        *
-        * data[ 0..11] : 12 个关节角 q
-        * data[12..23] : 12 个关节角速度 dq
-        * data[24..27] : 4 个接触相关量（例如足端力或接触置信度）
-        *
-        * 如果系统包含轮电机，则应扩展布局以包含 3、7、11、15 号电机，
-        * 传入的 msg 应该是 data[0..15]--q, data[16..31]--dq, data[32..48]--tau,.
-        */
+        if (robot_type_ == "Wheel")
+        {
+            // Wheel Type:
+            // data[0..15]   : q
+            // data[16..31]  : dq
+            // data[32..35]  : foot force / contact 
+            // or
+            // data[32..47]  : motor tau
+            if (n != 36 && n != 48)
+            {
+                RCLCPP_WARN(this->get_logger(),
+                            "Wheel mode expects joint array size 36 or 48, but got %zu",
+                            n);
+                return;
+            }
 
-        static const int desired_joints[] = {0,1,2, 4,5,6, 8,9,10, 12,13,14};
+            static const int desired_joints[] = {
+                0, 1, 2, 3,
+                4, 5, 6, 7,
+                8, 9, 10, 11,
+                12, 13, 14, 15
+            };
 
-        for (int i = 0; i < 12; ++i) {
-            const int mid = desired_joints[i];
-            st_.motorState[mid].q = arr[i];
-            st_.motorState[mid].dq = arr[12 + i];
-            st_.motorState[mid].tauEst = 0.0;
+            for (int i = 0; i < 16; ++i)
+            {
+                const int mid = desired_joints[i];
+
+                st_.motorState[mid].q = arr[i];
+                st_.motorState[mid].dq = arr[16 + i];
+
+                if (n == 36)
+                {
+                    const int leg = i / 4;
+                    const bool on = (arr[32 + leg] >= foot_force_threshold);
+                    st_.motorState[mid].tauEst = on ? 100.0 : 0.0;
+                }
+                else // n == 48
+                {
+                    st_.motorState[mid].tauEst = arr[32 + i];
+                }
+            }
         }
+        else
+        {
+            // Leg Type:
+            // data[0..11]   : q
+            // data[12..23]  : dq
+            // data[24..27]  : foot force / contact
+            if (n != 28 && n != 36)
+            {
+                RCLCPP_WARN(this->get_logger(),
+                            "Leg mode expects joint array size 26 or 36, but got %zu",
+                            n);
+                return;
+            }
 
-        // ---------------- Optional torque handling ----------------
-        // ---------------- 可选的力矩处理方式 ----------------
-        /*
-        * If real joint torque is available, it should be written directly above instead of 0.0.
-        * Otherwise, the incoming contact-related 1/0 signal is converted into a
-        * large pseudo knee torque, so that the estimator can still infer support state.
-        *
-        * The pseudo torque is written to knee motors:
-        *   2, 6, 10, 14
-        *
-        * 如果上游已经提供真实关节力矩，应直接在前面写入 tauEst 而不是 0.0。
-        * 否则，这里将接触相关的 1/0 信号转换成较大的“小腿/膝关节伪力矩”，
-        * 以便估计器仍然能够判断支撑状态。
-        *
-        * 伪力矩写入的小腿/膝关节编号为：
-        *   2、6、10、14
-        */
-        static const int tau_idx[4] = {2, 6, 10, 14};
-        for (int leg = 0; leg < 4; ++leg) {
-            const bool on = (arr[24 + leg] >= foot_force_threshold);
-            st_.motorState[tau_idx[leg]].tauEst = on ? 100.0 : 0.0;
+            static const int desired_joints[] = {
+                0, 1, 2,
+                4, 5, 6,
+                8, 9, 10,
+                12, 13, 14
+            };
+
+            for (int i = 0; i < 12; ++i)
+            {
+                const int mid = desired_joints[i];
+                st_.motorState[mid].q = arr[i];
+                st_.motorState[mid].dq = arr[12 + i];
+                
+                if (n == 28)
+                {
+                    const int leg = i / 3;
+                    const bool on = (arr[24 + leg] >= foot_force_threshold);
+                    st_.motorState[mid].tauEst = on ? 100.0 : 0.0;
+                }
+                else // n == 36
+                {
+                    st_.motorState[mid].tauEst = arr[24 + i];
+                }
+            }
         }
 
         // ---------------- Estimation is triggered only by the joint callback ----------------

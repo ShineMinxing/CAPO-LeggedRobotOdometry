@@ -277,6 +277,13 @@ public:
                 status[IndexStatusOK] = 1;
             legs_pos->UseMW();
         }
+        else if (status[IndexInOrOut] == 98){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 98;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseGo2W();
+        }
         else if (status[IndexInOrOut] == 99){
             status[IndexInOrOut] = 0;
             status[IndexStatusOK] = status[IndexStatusOK] + 99;

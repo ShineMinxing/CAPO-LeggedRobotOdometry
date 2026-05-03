@@ -1,0 +1,6 @@
+# Ignore all Matlab data
+Matlab/Data/
+
+# Ignore Matlab MEX binaries generated on different platforms
+Matlab/fusion_estimator_mex.mex*
+Matlab/Comparison/invariant-ekf/inekf_legged_core_mex.mex*

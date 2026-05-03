@@ -1,8 +1,12 @@
 fusion_estimator_node:
   ros__parameters:
+
+    # "Leg" or "Wheel"
+    RobotType: "Leg"
+
     # 订阅Go2传感器Topic
     sub_imu_topic: "SMX/Go2IMU"
-    sub_joint_topic: "SMX/Go2Joint"
+    sub_joint_topic: "SMX/Go2Joint"  # msg type: float64_multi_array
 
     # 订阅复位/模式命令的 ROS2 Topic
     sub_mode_topic: "SMX/SportCmd"
@@ -28,10 +32,10 @@ fusion_estimator_node:
     # 运动学估计使能
     leg_pos_enable: true
     leg_vel_enable: true
-    foot_force_threshold: 20.0
+    foot_force_threshold: 20.0  # only useful for legged robot without wheel
     min_stair_height: 0.08
     stair_height_fogotten: 60.0
     leg_ori_enable: false
     leg_ori_init_weight: 0.001
     leg_ori_time_wight: 1000.0
-    slope_mode_enable: false
+    slope_mode_enable: true

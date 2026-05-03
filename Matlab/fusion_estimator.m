@@ -1,12 +1,12 @@
 clear all;clc;
 cd(fileparts(mfilename('fullpath')));
 
-% CSV_PATH = 'MPXY150Z10'; DogMode = 4;
-% CSV_PATH = 'MWXY150Z10'; DogMode = 6;
-% CSV_PATH = 'GO2Stairs'; DogMode = 99;
-CSV_PATH = 'GO2Flat'; DogMode = 99;
+CSV_PATH = 'Data/MPXY150Z10'; DogMode = 4;
+% CSV_PATH = 'Data/MWXY150Z10'; DogMode = 6;
+% CSV_PATH = 'Data/GO2Stairs'; DogMode = 99;
+% CSV_PATH = 'Data/GO2Flat'; DogMode = 99;
 
-used_lines = 390000;
+used_lines = 200000;
 
 data = readmatrix(CSV_PATH);
 N = size(data, 1);
@@ -81,13 +81,20 @@ clear fusion_estimator_mex
 fprintf('[DONE] frames=%d\n', k);
 
 ZoomTime = [0,data(end-1,1)/1000];
-ZoomTime = [18,19];
+ZoomTime = [0,587];
+
+FigureScale = [0 0 900 600];
+WordSize = 16;
 
 figure(1); clf; hold on; grid on;
+set(gcf,'position',FigureScale);
 plot(odom_log(range,1), odom_log(range,2), 'bo')
 plot(odom_log(range,1), odom_log(range,3), 'ro')
 plot(odom_log(range,1), odom_log(range,4), 'go')
-legend("X","Y","Z","Slope")
+legend('CAPO-X', 'CAPO-Y', 'CAPO-Z','Location','southwest','FontSize', WordSize);
+xlabel('Time /s','FontSize', WordSize);
+ylabel('Estimated State /m','FontSize', WordSize);
+title('CAPO Method XYZ Accuracy Check','FontSize', WordSize);
 
 % figure(2); clf; hold on; grid on;
 % plot(odom_log(range,1), odom_log(range,5), 'bo')
