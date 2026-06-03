@@ -30,6 +30,9 @@
 #ifndef PI
 #define PI 3.14159265358979323846
 #endif
+#ifndef M_PI
+#define M_PI PI
+#endif
 #define POSITIVE_INFINITY 999999999
 #define NEGATIVE_INFINITY -999999999
 #define _ERROR_NO_ERROR                                             0x00000000    // No error
@@ -86,6 +89,9 @@ typedef struct stacks
     MATRIX_ELEMENT_NODE* matrixElementNode;
 } STACKS;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef ESTIMATOR_GLOBALS_H
 #define ESTIMATOR_GLOBALS_H
@@ -159,5 +165,32 @@ ERROR_ID Cholesky_decomposition(_IN MATRIX* A, _OUT MATRIX* L);
 ERROR_ID lup_decomposition(_IN MATRIX* A, _OUT MATRIX* L, _OUT MATRIX* U, _OUT MATRIX* P);
 // Solve matrix equation AX=B using LUP decomposition, where A(n*n), B(n*m), X(n*m) (written in matrix B)
 ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRIX* B);
+// Vector cross product array_C=array_A×array_B, array_A/array_B/array_C are 3D vectors
+ERROR_ID array_vector_cross(_IN REAL array_A[3], _IN REAL array_B[3], _OUT REAL array_C[3]);
+// Check whether quaternion array_Q is valid unit quaternion, array_Q=[w,x,y,z]
+ERROR_ID array_quaternion_check(_IN REAL array_Q[4], _OUT FLAG* IsOK);
+// Quaternion conjugation array_Qc=conj(array_Q), array_Q/array_Qc=[w,x,y,z]
+ERROR_ID array_quaternion_conjugate(_IN REAL array_Q[4], _OUT REAL array_Qc[4]);
+// Quaternion multiplication array_C=array_A⊗array_B, array_A/array_B/array_C=[w,x,y,z]
+ERROR_ID array_quaternion_multiplication(_IN REAL array_A[4], _IN REAL array_B[4], _OUT REAL array_C[4]);
+// Quaternion normalization array_Qn=array_Q/||array_Q||, array_Q/array_Qn=[w,x,y,z]
+ERROR_ID array_quaternion_normalize(_IN REAL array_Q[4], _OUT REAL array_Qn[4]);
+// Rotate 3D vector by unit quaternion array_Vout=array_Q*array_V*conj(array_Q), array_Q=[w,x,y,z]
+ERROR_ID array_quaternion_rotate_vector(_IN REAL array_Q[4], _IN REAL array_V[3], _OUT REAL array_Vout[3]);
+// Transform ZYX Euler angle into quaternion, array_EulerZYX=[roll,pitch,yaw], array_Q=[w,x,y,z]
+ERROR_ID array_eulerZYX_to_quaternion(_IN REAL array_EulerZYX[3], _OUT REAL array_Q[4]);
+// Transform quaternion into ZYX Euler angle, array_Q=[w,x,y,z], array_EulerZYX=[roll,pitch,yaw]
+ERROR_ID array_quaternion_to_eulerZYX(_IN REAL array_Q[4], _OUT REAL array_EulerZYX[3]);
+// Wrap angle array element from (-inf,+inf) into [-PI,PI], array_B=wrap(array_A)
+ERROR_ID array_angle_wrap(_IN REAL array_A[], _OUT REAL array_B[], _IN INTEGER length);
+// Unwrap angle array by previous wrapped angle and turn counter, array_A=array_A+array_Turn*2*PI
+ERROR_ID array_angle_unwrap(_IN_OUT REAL array_A[], _IN_OUT REAL array_Last[], _IN_OUT REAL array_Turn[], _IN INTEGER length);
+// 3x3 matrix inversion array_invA=inv(array_A), array_A/array_invA are 3x3 matrices
+ERROR_ID array_3x3_inverse(_IN REAL array_A[3][3], _OUT REAL array_invA[3][3]);
+// 3x3 matrix and 3D vector multiplication array_B=array_A*array_V
+ERROR_ID array_3x3_multiply_vector(_IN REAL array_A[3][3], _IN REAL array_V[3], _OUT REAL array_B[3]);
 
+#ifdef __cplusplus
+}
+#endif
 #endif

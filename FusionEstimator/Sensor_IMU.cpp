@@ -53,7 +53,19 @@ namespace DataFusion
         ObservationCorrect_AngularVelocity();
       }
         
-      angle_unwrap(Observation[0], Observation[3], Observation[6]);
+      static double ObservationAngleLast[3] = {0.0, 0.0, 0.0};
+      static double ObservationAngleTurn[3] = {0.0, 0.0, 0.0};
+      double ObservationAngle[3] = {
+          Observation[0],
+          Observation[3],
+          Observation[6]
+      };
+
+      array_angle_unwrap(ObservationAngle, ObservationAngleLast, ObservationAngleTurn, 3);
+
+      Observation[0] = ObservationAngle[0];
+      Observation[3] = ObservationAngle[1];
+      Observation[6] = ObservationAngle[2];
 
       StateSpaceModel_Go2_EstimatorPort(Observation, ObservationTime, StateSpaceModel);
 

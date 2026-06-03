@@ -410,7 +410,9 @@ namespace DataFusion
           : parent(parent_), q_index(q_index_), dq_index(dq_index_), tau_index(tau_index_), axis(axis_)
       {
         t[0] = x; t[1] = y; t[2] = z;
-        eulerZYX_to_quat(roll, pitch, yaw, q_fix);
+        double array_EulerZYX[3] = {roll, pitch, yaw};
+        array_eulerZYX_to_quaternion(array_EulerZYX, q_fix);
+        array_quaternion_normalize(q_fix, q_fix);
       }
     };
 

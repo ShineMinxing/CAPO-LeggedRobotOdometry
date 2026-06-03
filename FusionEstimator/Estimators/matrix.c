@@ -1595,3 +1595,491 @@ int Matrix_Free(double **tmp, int m, int n)
 	}
 	return(0);
 }
+ERROR_ID array_vector_cross(_IN REAL array_A[3], _IN REAL array_B[3], _OUT REAL array_C[3])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL ax, ay, az;
+    REAL bx, by, bz;
+    REAL cx, cy, cz;
+
+    if (array_A == NULL || array_B == NULL || array_C == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    ax = array_A[0];
+    ay = array_A[1];
+    az = array_A[2];
+
+    bx = array_B[0];
+    by = array_B[1];
+    bz = array_B[2];
+
+    cx = ay * bz - az * by;
+    cy = az * bx - ax * bz;
+    cz = ax * by - ay * bx;
+
+    array_C[0] = cx;
+    array_C[1] = cy;
+    array_C[2] = cz;
+
+    return errorID;
+}
+
+ERROR_ID array_quaternion_check(_IN REAL array_Q[4], _OUT FLAG* IsOK)
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL n2;
+
+    if (array_Q == NULL || IsOK == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    n2 = array_Q[0] * array_Q[0] +
+         array_Q[1] * array_Q[1] +
+         array_Q[2] * array_Q[2] +
+         array_Q[3] * array_Q[3];
+
+    *IsOK = (isfinite(n2) && fabs(n2 - 1.0) < 1.0e-2) ? 1 : 0;
+
+    return errorID;
+}
+
+ERROR_ID array_quaternion_conjugate(_IN REAL array_Q[4], _OUT REAL array_Qc[4])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL q0, q1, q2, q3;
+
+    if (array_Q == NULL || array_Qc == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    q0 = array_Q[0];
+    q1 = array_Q[1];
+    q2 = array_Q[2];
+    q3 = array_Q[3];
+
+    array_Qc[0] = q0;
+    array_Qc[1] = -q1;
+    array_Qc[2] = -q2;
+    array_Qc[3] = -q3;
+
+    return errorID;
+}
+
+ERROR_ID array_quaternion_multiplication(_IN REAL array_A[4], _IN REAL array_B[4], _OUT REAL array_C[4])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL aw, ax, ay, az;
+    REAL bw, bx, by, bz;
+    REAL cw, cx, cy, cz;
+
+    if (array_A == NULL || array_B == NULL || array_C == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    aw = array_A[0];
+    ax = array_A[1];
+    ay = array_A[2];
+    az = array_A[3];
+
+    bw = array_B[0];
+    bx = array_B[1];
+    by = array_B[2];
+    bz = array_B[3];
+
+    cw = aw * bw - ax * bx - ay * by - az * bz;
+    cx = aw * bx + ax * bw + ay * bz - az * by;
+    cy = aw * by - ax * bz + ay * bw + az * bx;
+    cz = aw * bz + ax * by - ay * bx + az * bw;
+
+    array_C[0] = cw;
+    array_C[1] = cx;
+    array_C[2] = cy;
+    array_C[3] = cz;
+
+    return errorID;
+}
+
+ERROR_ID array_quaternion_normalize(_IN REAL array_Q[4], _OUT REAL array_Qn[4])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL q0, q1, q2, q3;
+    REAL n2;
+    REAL inv_n;
+
+    if (array_Q == NULL || array_Qn == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    q0 = array_Q[0];
+    q1 = array_Q[1];
+    q2 = array_Q[2];
+    q3 = array_Q[3];
+
+    n2 = q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3;
+
+    if (!isfinite(n2) || n2 <= 1.0e-24)
+    {
+        array_Qn[0] = 1.0;
+        array_Qn[1] = 0.0;
+        array_Qn[2] = 0.0;
+        array_Qn[3] = 0.0;
+
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    inv_n = 1.0 / sqrt(n2);
+
+    array_Qn[0] = q0 * inv_n;
+    array_Qn[1] = q1 * inv_n;
+    array_Qn[2] = q2 * inv_n;
+    array_Qn[3] = q3 * inv_n;
+
+    return errorID;
+}
+
+ERROR_ID array_quaternion_rotate_vector(_IN REAL array_Q[4], _IN REAL array_V[3], _OUT REAL array_Vout[3])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL w, x, y, z;
+    REAL vx, vy, vz;
+    REAL tx, ty, tz;
+    REAL ox, oy, oz;
+
+    if (array_Q == NULL || array_V == NULL || array_Vout == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    w = array_Q[0];
+    x = array_Q[1];
+    y = array_Q[2];
+    z = array_Q[3];
+
+    vx = array_V[0];
+    vy = array_V[1];
+    vz = array_V[2];
+
+    tx = 2.0 * (y * vz - z * vy);
+    ty = 2.0 * (z * vx - x * vz);
+    tz = 2.0 * (x * vy - y * vx);
+
+    ox = vx + w * tx + y * tz - z * ty;
+    oy = vy + w * ty + z * tx - x * tz;
+    oz = vz + w * tz + x * ty - y * tx;
+
+    array_Vout[0] = ox;
+    array_Vout[1] = oy;
+    array_Vout[2] = oz;
+
+    return errorID;
+}
+
+ERROR_ID array_eulerZYX_to_quaternion(_IN REAL array_EulerZYX[3], _OUT REAL array_Q[4])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL roll, pitch, yaw;
+    REAL half_roll, half_pitch, half_yaw;
+    REAL cr, sr, cp, sp, cy, sy;
+
+    if (array_EulerZYX == NULL || array_Q == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    roll = array_EulerZYX[0];
+    pitch = array_EulerZYX[1];
+    yaw = array_EulerZYX[2];
+
+    half_roll = 0.5 * roll;
+    half_pitch = 0.5 * pitch;
+    half_yaw = 0.5 * yaw;
+
+    cr = cos(half_roll);
+    sr = sin(half_roll);
+    cp = cos(half_pitch);
+    sp = sin(half_pitch);
+    cy = cos(half_yaw);
+    sy = sin(half_yaw);
+
+    array_Q[0] = cr * cp * cy + sr * sp * sy;
+    array_Q[1] = sr * cp * cy - cr * sp * sy;
+    array_Q[2] = cr * sp * cy + sr * cp * sy;
+    array_Q[3] = cr * cp * sy - sr * sp * cy;
+
+    return errorID;
+}
+
+ERROR_ID array_quaternion_to_eulerZYX(_IN REAL array_Q[4], _OUT REAL array_EulerZYX[3])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL w, x, y, z;
+    REAL sinr_cosp, cosr_cosp;
+    REAL sinp;
+    REAL siny_cosp, cosy_cosp;
+
+    if (array_Q == NULL || array_EulerZYX == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    w = array_Q[0];
+    x = array_Q[1];
+    y = array_Q[2];
+    z = array_Q[3];
+
+    sinr_cosp = 2.0 * (w * x + y * z);
+    cosr_cosp = 1.0 - 2.0 * (x * x + y * y);
+    sinp = 2.0 * (w * y - z * x);
+    siny_cosp = 2.0 * (w * z + x * y);
+    cosy_cosp = 1.0 - 2.0 * (y * y + z * z);
+
+    array_EulerZYX[0] = atan2(sinr_cosp, cosr_cosp);
+
+    if (sinp >= 1.0)
+    {
+        array_EulerZYX[1] = 0.5 * PI;
+    }
+    else if (sinp <= -1.0)
+    {
+        array_EulerZYX[1] = -0.5 * PI;
+    }
+    else
+    {
+        array_EulerZYX[1] = asin(sinp);
+    }
+
+    array_EulerZYX[2] = atan2(siny_cosp, cosy_cosp);
+
+    return errorID;
+}
+
+ERROR_ID array_angle_wrap(_IN REAL array_A[], _OUT REAL array_B[], _IN INTEGER length)
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    INDEX i;
+    REAL a, a_org;
+
+    if (array_A == NULL || array_B == NULL || length <= 0)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    for (i = 0; i < length; i++)
+    {
+        a = array_A[i];
+
+        if (a > PI || a < -PI)
+        {
+            a_org = a;
+
+            a = fmod(a + PI, 2.0 * PI);
+
+            if (a < 0.0)
+            {
+                a += 2.0 * PI;
+            }
+
+            a -= PI;
+
+            if (a == -PI && a_org > 0.0)
+            {
+                a = PI;
+            }
+        }
+
+        array_B[i] = a;
+    }
+
+    return errorID;
+}
+
+ERROR_ID array_angle_unwrap(_IN_OUT REAL array_A[], _IN_OUT REAL array_Last[], _IN_OUT REAL array_Turn[], _IN INTEGER length)
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    INDEX i;
+    REAL a, last, turn, diff;
+
+    if (array_A == NULL || array_Last == NULL || array_Turn == NULL || length <= 0)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    for (i = 0; i < length; i++)
+    {
+        a = array_A[i];
+        last = array_Last[i];
+        turn = array_Turn[i];
+
+        diff = last - a;
+
+        if (diff > PI)
+        {
+            turn += 1.0;
+        }
+        else if (diff < -PI)
+        {
+            turn -= 1.0;
+        }
+
+        array_Last[i] = a;
+        array_Turn[i] = turn;
+        array_A[i] = a + turn * 2.0 * PI;
+    }
+
+    return errorID;
+}
+
+ERROR_ID array_3x3_inverse(_IN REAL array_A[3][3], _OUT REAL array_invA[3][3])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL a00, a01, a02;
+    REAL a10, a11, a12;
+    REAL a20, a21, a22;
+
+    REAL c00, c01, c02;
+    REAL c10, c11, c12;
+    REAL c20, c21, c22;
+
+    REAL det;
+    REAL invdet;
+
+    REAL r00, r01, r02;
+    REAL r10, r11, r12;
+    REAL r20, r21, r22;
+
+    if (array_A == NULL || array_invA == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    a00 = array_A[0][0];
+    a01 = array_A[0][1];
+    a02 = array_A[0][2];
+
+    a10 = array_A[1][0];
+    a11 = array_A[1][1];
+    a12 = array_A[1][2];
+
+    a20 = array_A[2][0];
+    a21 = array_A[2][1];
+    a22 = array_A[2][2];
+
+    c00 = a11 * a22 - a12 * a21;
+    c01 = -(a10 * a22 - a12 * a20);
+    c02 = a10 * a21 - a11 * a20;
+
+    c10 = -(a01 * a22 - a02 * a21);
+    c11 = a00 * a22 - a02 * a20;
+    c12 = -(a00 * a21 - a01 * a20);
+
+    c20 = a01 * a12 - a02 * a11;
+    c21 = -(a00 * a12 - a02 * a10);
+    c22 = a00 * a11 - a01 * a10;
+
+    det = a00 * c00 + a01 * c01 + a02 * c02;
+
+    if (fabs(det) < 1.0e-12)
+    {
+        errorID = _ERROR_MATRIX_EQUATION_HAS_NO_SOLUTIONS;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    invdet = 1.0 / det;
+
+    r00 = c00 * invdet;
+    r01 = c10 * invdet;
+    r02 = c20 * invdet;
+
+    r10 = c01 * invdet;
+    r11 = c11 * invdet;
+    r12 = c21 * invdet;
+
+    r20 = c02 * invdet;
+    r21 = c12 * invdet;
+    r22 = c22 * invdet;
+
+    array_invA[0][0] = r00;
+    array_invA[0][1] = r01;
+    array_invA[0][2] = r02;
+
+    array_invA[1][0] = r10;
+    array_invA[1][1] = r11;
+    array_invA[1][2] = r12;
+
+    array_invA[2][0] = r20;
+    array_invA[2][1] = r21;
+    array_invA[2][2] = r22;
+
+    return errorID;
+}
+
+ERROR_ID array_3x3_multiply_vector(_IN REAL array_A[3][3], _IN REAL array_V[3], _OUT REAL array_B[3])
+{
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    REAL v0, v1, v2;
+    REAL b0, b1, b2;
+
+    if (array_A == NULL || array_V == NULL || array_B == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    v0 = array_V[0];
+    v1 = array_V[1];
+    v2 = array_V[2];
+
+    b0 = array_A[0][0] * v0 + array_A[0][1] * v1 + array_A[0][2] * v2;
+    b1 = array_A[1][0] * v0 + array_A[1][1] * v1 + array_A[1][2] * v2;
+    b2 = array_A[2][0] * v0 + array_A[2][1] * v1 + array_A[2][2] * v2;
+
+    array_B[0] = b0;
+    array_B[1] = b1;
+    array_B[2] = b2;
+
+    return errorID;
+}

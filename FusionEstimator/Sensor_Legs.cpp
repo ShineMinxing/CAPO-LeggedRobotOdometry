@@ -93,7 +93,9 @@ namespace DataFusion
                 const double y_mean = 0.5 * (fy + ry);
 
                 double yaw_ff = std::atan2(fy - ry, fx - rx);
-                angle_unwrap(yaw_ff);
+                static double yaw_ff_last = 0.0;
+                static double yaw_ff_turn = 0.0;
+                array_angle_unwrap(&yaw_ff, &yaw_ff_last, &yaw_ff_turn, 1);
 
                 FootfallAveragePosition[0] = x_mean;
                 FootfallAveragePosition[1] = y_mean;
@@ -177,12 +179,12 @@ namespace DataFusion
                 p_zero :
                 LegChains_[LegNumber].node_pos_wf[LegChains_[LegNumber].node[n].parent];
 
-            const double* q_parent =
+            double* q_parent =
                 (LegChains_[LegNumber].node[n].parent < 0) ?
                 Est_Quaternion :
                 LegChains_[LegNumber].node_quat_wf[LegChains_[LegNumber].node[n].parent];
 
-            quat_rot_vec3(
+            array_quaternion_rotate_vector(
                 q_parent,
                 LegChains_[LegNumber].node[n].t,
                 LegChains_[LegNumber].node_pos_wf[n]
@@ -193,8 +195,8 @@ namespace DataFusion
             LegChains_[LegNumber].node_pos_wf[n][2] += p_parent[2];
 
             double q_pre[4];
-            quat_mul(q_parent, LegChains_[LegNumber].node[n].q_fix, q_pre);
-            quat_normalize(q_pre);
+            array_quaternion_multiplication(q_parent, LegChains_[LegNumber].node[n].q_fix, q_pre);
+            array_quaternion_normalize(q_pre, q_pre);
 
             if (LegChains_[LegNumber].node[n].q_index >= 0)
             {
@@ -208,7 +210,7 @@ namespace DataFusion
                 joint_org[joint_num][1] = LegChains_[LegNumber].node_pos_wf[n][1];
                 joint_org[joint_num][2] = LegChains_[LegNumber].node_pos_wf[n][2];
 
-                quat_rot_vec3(q_pre, axis_local, joint_axis[joint_num]);
+                array_quaternion_rotate_vector(q_pre, axis_local, joint_axis[joint_num]);
 
                 joint_dq[joint_num] =
                     (LegChains_[LegNumber].node[n].dq_index >= 0) ?
@@ -230,8 +232,8 @@ namespace DataFusion
                     axis_local[2] * s
                 };
 
-                quat_mul(q_pre, q_joint, LegChains_[LegNumber].node_quat_wf[n]);
-                quat_normalize(LegChains_[LegNumber].node_quat_wf[n]);
+                array_quaternion_multiplication(q_pre, q_joint, LegChains_[LegNumber].node_quat_wf[n]);
+                array_quaternion_normalize(LegChains_[LegNumber].node_quat_wf[n], LegChains_[LegNumber].node_quat_wf[n]);
 
                 joint_num++;
             }
@@ -244,7 +246,7 @@ namespace DataFusion
             }
         }
 
-        quat_rot_vec3(
+        array_quaternion_rotate_vector(
             LegChains_[LegNumber].node_quat_wf[LegChains_[LegNumber].ee.parent],
             LegChains_[LegNumber].ee.t,
             FootBodyPos_WF[LegNumber]
@@ -304,8 +306,8 @@ namespace DataFusion
         FootBodyEff_WF[LegNumber][1] = 0.0;
         FootBodyEff_WF[LegNumber][2] = 0.0;
         
-        if (mat3_inv(JJT, JJT_inv))
-            mat3_mul_vec(JJT_inv, Jtau, FootBodyEff_WF[LegNumber]);
+        if (array_3x3_inverse(JJT, JJT_inv) == _ERROR_NO_ERROR)
+            array_3x3_multiply_vector(JJT_inv, Jtau, FootBodyEff_WF[LegNumber]);
 
         const double tau_w[3] = {
             FootBodyPos_WF[LegNumber][1] * FootBodyEff_WF[LegNumber][2] - FootBodyPos_WF[LegNumber][2] * FootBodyEff_WF[LegNumber][1],
@@ -360,9 +362,12 @@ namespace DataFusion
         int    leg_cnt = 0;
         static double ShankPitchPrev[MAX_CONTACT_CHAIN] = {0};
         static double ShankRollPrev[MAX_CONTACT_CHAIN] = {0};
-        double body_roll=0.0, body_pitch=0.0, body_yaw=0.0;
 
-        quat_to_eulerZYX(Est_Quaternion, body_roll, body_pitch, body_yaw);
+        double body_rpy[3] = {0.0, 0.0, 0.0};
+        array_quaternion_to_eulerZYX(Est_Quaternion, body_rpy);
+        double body_roll = body_rpy[0];
+        double body_pitch = body_rpy[1];
+        double body_yaw = body_rpy[2];
 
         double move_dir_x = 1.0, move_dir_y = 0.0, move_dir_z = 0.0;
         EstimateGroundPitchAlongHeading(move_dir_x, move_dir_y, move_dir_z);
@@ -648,7 +653,7 @@ namespace DataFusion
         hx /= hn;
         hy /= hn;
 
-        if (!SlopeModeEnable || n < 3 || !mat3_inv(A, Ainv) || count < 2)
+        if (!SlopeModeEnable || n < 3 || array_3x3_inverse(A, Ainv) != _ERROR_NO_ERROR || count < 2)
         {
             move_dir_x = hx;
             move_dir_y = hy;
@@ -656,7 +661,7 @@ namespace DataFusion
             return;
         }
 
-        mat3_mul_vec(Ainv, rhs, abc);
+        array_3x3_multiply_vector(Ainv, rhs, abc);
 
         const double a = abc[0];
         const double b = abc[1];
@@ -720,7 +725,9 @@ namespace DataFusion
         const double yaw_now = StateSpaceModel->EstimatedState[6];
 
         double q_yaw_inv[4];
-        eulerZYX_to_quat(0.0, 0.0, -yaw_now, q_yaw_inv);
+        double array_EulerZYX[3] = {0.0, 0.0, -yaw_now};
+        array_eulerZYX_to_quaternion(array_EulerZYX, q_yaw_inv);
+        array_quaternion_normalize(q_yaw_inv, q_yaw_inv);
 
         double sx = 0.0, sy = 0.0;
         for (i = 0; i < legs_pos_ref_->ContactChainNum; ++i) {
@@ -738,7 +745,7 @@ namespace DataFusion
                 };
 
                 double v_rp[3];
-                quat_rot_vec3(q_yaw_inv, v_wf, v_rp);
+                array_quaternion_rotate_vector(q_yaw_inv, v_wf, v_rp);
 
                 double vw_x = legs_pos_ref_->FootfallPositionRecord[j][0] - legs_pos_ref_->FootfallPositionRecord[i][0];
                 double vw_y = legs_pos_ref_->FootfallPositionRecord[j][1] - legs_pos_ref_->FootfallPositionRecord[i][1];
@@ -747,7 +754,9 @@ namespace DataFusion
                 const double ang_rp = std::atan2(v_rp[1], v_rp[0]);
                 const double ang_w  = std::atan2(vw_y,     vw_x);
 
-                const double yaw_ij = angle_wrap(ang_w - ang_rp);
+                double yaw_ij = ang_w - ang_rp;
+                array_angle_wrap(&yaw_ij, &yaw_ij, 1);
+
                 sx += std::cos(yaw_ij);
                 sy += std::sin(yaw_ij);
 
@@ -762,8 +771,10 @@ namespace DataFusion
         if (sx != 0.0 || sy != 0.0) {
             const double yaw_est = std::atan2(sy, sx);
             const double yaw_now = StateSpaceModel->EstimatedState[6];
-            const double err     = angle_wrap(yaw_est - yaw_now);
-            legori_correct = angle_wrap(yaw_now + legori_current_weight * err);
+            double err = yaw_est - yaw_now;
+            array_angle_wrap(&err, &err, 1);
+            legori_correct = yaw_now + legori_current_weight * err;
+            array_angle_wrap(&legori_correct, &legori_correct, 1);
             UpdateEst_Quaternion();
         }
     }

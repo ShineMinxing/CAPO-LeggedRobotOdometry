@@ -301,15 +301,18 @@ public:
     {
         Odometer odom;
         
-        const double q[4] = {
+        double q[4] = {
             static_cast<double>(st.imu.quaternion[0]),
             static_cast<double>(st.imu.quaternion[1]),
             static_cast<double>(st.imu.quaternion[2]),
             static_cast<double>(st.imu.quaternion[3])
         };
 
-        if(!DataFusion::quat_is_ok(q))
+        FLAG IsQuaternionOK = 0;
+        array_quaternion_check(q, &IsQuaternionOK);
+        if (!IsQuaternionOK)
             return odom;
+        array_quaternion_normalize(q, q);
 
         const double CurrentTimestamp = 1e-3 * static_cast<double>(st.imu.timestamp);
         static double LastUsedTimestamp = 0, StartTimeStamp = 0;
@@ -329,11 +332,14 @@ public:
             if(Signal_Available_Check(msg_acc,0))
                 imu_acc->SensorDataHandle(msg_acc, UsedTimestamp);
         }
+        
+        double array_EulerZYX[3] = {0.0, 0.0, 0.0};
+        array_quaternion_to_eulerZYX(q, array_EulerZYX);
+        double roll = array_EulerZYX[0];
+        double pitch = array_EulerZYX[1];
+        double yaw = array_EulerZYX[2];
 
-        double roll, pitch, yaw;
         double msg_rpy[9] = {0};
-
-        DataFusion::quat_to_eulerZYX(q, roll, pitch, yaw);
 
         msg_rpy[3*0] = roll;
         msg_rpy[3*1] = pitch;

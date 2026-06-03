@@ -14,9 +14,9 @@ namespace DataFusion
       AngleCorrect[0] = 0 * M_PI / 180.0;
       AngleCorrect[1] = 1.7 * M_PI / 180.0;
       AngleCorrect[2] = 0 * M_PI / 180.0;
-      eulerZYX_to_quat(AngleCorrect[0], AngleCorrect[1], AngleCorrect[2], SensorQuaternion);
-      quat_normalize(SensorQuaternion);
-      quat_conj(SensorQuaternion, SensorQuaternionInv);
+      array_eulerZYX_to_quaternion(AngleCorrect, SensorQuaternion);
+      array_quaternion_normalize(SensorQuaternion, SensorQuaternion);
+      array_quaternion_conjugate(SensorQuaternion, SensorQuaternionInv);
 
       SensorPosition[0] = 0;
       SensorPosition[1] = 0;
@@ -41,9 +41,9 @@ namespace DataFusion
       AngleCorrect[0] = 0 * M_PI / 180.0;
       AngleCorrect[1] = 1.7 * M_PI / 180.0;
       AngleCorrect[2] = 0 * M_PI / 180.0;
-      eulerZYX_to_quat(AngleCorrect[0], AngleCorrect[1], AngleCorrect[2], SensorQuaternion);
-      quat_normalize(SensorQuaternion);
-      quat_conj(SensorQuaternion, SensorQuaternionInv);
+      array_eulerZYX_to_quaternion(AngleCorrect, SensorQuaternion);
+      array_quaternion_normalize(SensorQuaternion, SensorQuaternion);
+      array_quaternion_conjugate(SensorQuaternion, SensorQuaternionInv);
 
       SensorPosition[0] = 0;
       SensorPosition[1] = 0;
