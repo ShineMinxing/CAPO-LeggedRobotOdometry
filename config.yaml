@@ -1,7 +1,7 @@
 fusion_estimator_node:
   ros__parameters:
     # 98.0~Unitree Go2W; 99.0~Unitree Go2;
-    RobotType: 99.0
+    RobotType: 98.0
 
     # subscribe sensor topics
     sub_imu_topic: "SMX/Go2IMU"  # msg type: sensor_msgs::msg::Imu

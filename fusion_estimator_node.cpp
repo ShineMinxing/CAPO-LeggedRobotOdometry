@@ -219,7 +219,7 @@ private:
         
         for (int leg = 0; leg < 4; ++leg)
         {
-            if(contact_sensor_threshold!=0&&st_.motorState[4*leg+0].tauEst==0&&st_.motorState[4*leg+1].tauEst==0&&st_.motorState[4*leg+3].tauEst==0)
+            if(contact_sensor_threshold!=0 && st_.motorState[4*leg+0].tauEst==0 && st_.motorState[4*leg+1].tauEst==0 && st_.motorState[4*leg+3].tauEst==0)
                 st_.motorState[4*leg+2].tauEst = (st_.motorState[4*leg+2].tauEst >= contact_sensor_threshold) ? 100.0 : 0.0;
         }
 
@@ -294,9 +294,9 @@ private:
             {
                 const int pos_id = 12 + leg * 12 + node * 3;
 
-                const double x = status[40 + pos_id + 0] + odom_.XPos;
-                const double y = status[40 + pos_id + 1] + odom_.YPos;
-                const double z = status[40 + pos_id + 2] + odom_.ZPos;
+                const double x = status[20 + pos_id + 0] + odom_.XPos;
+                const double y = status[20 + pos_id + 1] + odom_.YPos;
+                const double z = status[20 + pos_id + 2] + odom_.ZPos;
 
                 visualization_msgs::msg::Marker marker;
 
@@ -312,9 +312,9 @@ private:
                 marker.pose.position.z = z;
                 marker.pose.orientation.w = 1.0;
 
-                marker.scale.x = 0.15;
-                marker.scale.y = 0.15;
-                marker.scale.z = 0.15;
+                marker.scale.x = 0.05;
+                marker.scale.y = 0.05;
+                marker.scale.z = 0.05;
 
                 if (node == 0)
                 {
@@ -337,27 +337,8 @@ private:
                 else
                 {
                     marker.color.r = 1.0;
-                    if(leg==0)
-                    {
-                        marker.color.g = 1.0 - odom_.FLFootLanded;
-                        marker.color.b = 1.0 - odom_.FLFootLanded;
-                    }
-                    else if(leg==1)
-                    {
-                        marker.color.g = 1.0 - odom_.FRFootLanded;
-                        marker.color.b = 1.0 - odom_.FRFootLanded;
-                    }
-                    else if(leg==2)
-                    {
-                        marker.color.g = 1.0 - odom_.RLFootLanded;
-                        marker.color.b = 1.0 - odom_.RLFootLanded;
-                    }
-                    else
-                    {
-                        marker.color.g = 1.0 - odom_.RRFootLanded;
-                        marker.color.b = 1.0 - odom_.RRFootLanded;
-                    }
-                        
+                    marker.color.g = 0.0;
+                    marker.color.b = 0.0;
                 }
 
                 marker.color.a = 1.0;
@@ -372,6 +353,41 @@ private:
             }
 
             markers.markers.push_back(line);
+            const int foot_pos_id = 12 + leg * 12 + 3 * 3;
+            const int force_id = leg * 3;
+
+            geometry_msgs::msg::Point p0, p1;
+
+            p0.x = status[20 + foot_pos_id + 0] + odom_.XPos;
+            p0.y = status[20 + foot_pos_id + 1] + odom_.YPos;
+            p0.z = status[20 + foot_pos_id + 2] + odom_.ZPos;
+
+            p1.x = p0.x - status[20 + force_id + 0] / 1000.0;
+            p1.y = p0.y - status[20 + force_id + 1] / 1000.0;
+            p1.z = p0.z - status[20 + force_id + 2] / 1000.0;
+
+            visualization_msgs::msg::Marker force_arrow;
+            force_arrow.header.stamp = SMXFE_odom.header.stamp;
+            force_arrow.header.frame_id = odom_frame_id;
+            force_arrow.ns = std::string(leg_names[leg]) + "_Force";
+            force_arrow.id = 200 + leg;
+            force_arrow.type = visualization_msgs::msg::Marker::ARROW;
+            force_arrow.action = visualization_msgs::msg::Marker::ADD;
+            force_arrow.pose.orientation.w = 1.0;
+
+            force_arrow.scale.x = 0.01;
+            force_arrow.scale.y = 0.03;
+            force_arrow.scale.z = 0.03;
+
+            force_arrow.color.r = 1.0;
+            force_arrow.color.g = 0.0;
+            force_arrow.color.b = 0.0;
+            force_arrow.color.a = 1.0;
+
+            force_arrow.points.push_back(p0);
+            force_arrow.points.push_back(p1);
+
+            markers.markers.push_back(force_arrow);
         }
 
         body_joint_marker_publisher->publish(markers);

@@ -2,7 +2,7 @@ clear all;clc;
 cd(fileparts(mfilename('fullpath')));
 
 % CSV_PATH = 'Data/GO2Stairs'; DogMode = 99;
-% CSV_PATH = 'Data/GO2Flat'; DogMode = 99;
+CSV_PATH = 'Data/GO2Flat'; DogMode = 99;
 
 % CSV_PATH = 'Data/SP_XY85.csv';  DogMode = 7;
 
@@ -13,7 +13,7 @@ cd(fileparts(mfilename('fullpath')));
 % CSV_PATH = 'Data/LW_XY150Z10_3.csv';  DogMode = 5;
 % CSV_PATH = 'Data/LW_Flat.csv'; DogMode = 5;
 % CSV_PATH = 'Data/LW_YCheck.csv';  DogMode = 5;
-CSV_PATH = 'Data/LW_Outdoor.csv';  DogMode = 5;
+% CSV_PATH = 'Data/LW_Outdoor.csv';  DogMode = 5;
 
 used_lines = 300000;
 
@@ -95,12 +95,11 @@ clear fusion_estimator_mex
 fprintf('[DONE] frames=%d\n', k);
 
 ZoomTime = [0,data(end-1,1)/1000];
-% ZoomTime = [0,166];
+% ZoomTime = [2,9];
 
-FigureScale = [0 0 900 600];
-WordSize = 16;
+WordSize = 25;
 
-DP0 = 41;
+DP0 = 21;
 leg_names = {'FL','FR','RL','RR'};
 xyz_names = {'X','Y','Z'};
 node_names = {'hip','thigh','calf','foot'};
@@ -108,7 +107,6 @@ node_names = {'hip','thigh','calf','foot'};
 t_plot = odom_log(range,1);
 
 figure(1); clf;
-% set(gcf,'position',FigureScale);
 
 tabs_state = uitabgroup;
 
@@ -132,50 +130,52 @@ plot(t_plot, odom_log(range,5));
 plot(t_plot, odom_log(range,6));
 plot(t_plot, odom_log(range,7));
 xlim(ZoomTime);
-legend('vX','vY','vZ','Location','best','FontSize', WordSize);
+legend('vX','vY','vZ','Location','northeast','FontSize', WordSize);
 xlabel('Time /s','FontSize', WordSize);
 ylabel('Estimated Velocity /m/s','FontSize', WordSize);
 title('CAPO Method Velocity Check','FontSize', WordSize);
 
 
-% figure(30); clf;
-% % set(gcf,'position',[100 50 1000 800]);
-% 
-% tabs_leg = uitabgroup;
-% 
-% tab1 = uitab(tabs_leg, 'Title', 'FL');
-% tab2 = uitab(tabs_leg, 'Title', 'FR');
-% tab3 = uitab(tabs_leg, 'Title', 'RL');
-% tab4 = uitab(tabs_leg, 'Title', 'RR');
-% 
-% tab_list = [tab1, tab2, tab3, tab4];
-% 
-% for leg = 0:3
-%     for xyz = 0:2
-%         subplot(3,1,xyz+1,'Parent',tab_list(leg+1));
-%         hold on; grid on;
-% 
-%         ylim([-1,1]);
-% 
-%         for node = 0:3
-%             pos_id = 12 + leg*12 + node*3 + xyz;
-%             plot(t_plot, status_record(DP0 + pos_id, range));
-%         end
-% 
-%         force_id = leg*3 + xyz;
-%         h = plot(t_plot, status_record(DP0 + force_id, range) / 1000);
-%         h.Color(4) = 0.3;
-% 
-%         xlim(ZoomTime);
-%         ylabel(xyz_names{xyz+1});
-% 
-%         if xyz == 0
-%             title([leg_names{leg+1}, ' leg nodes position and force/100']);
-%             legend('hip','thigh','calf','foot','force/100','Location','best');
-%         end
-% 
-%         if xyz == 2
-%             xlabel('t / s');
-%         end
-%     end
-% end
+figure(30); clf;
+% set(gcf,'position',[100 50 1000 800]);
+
+range = 1:50:N;
+t_plot = odom_log(range,1);
+tabs_leg = uitabgroup;
+
+tab1 = uitab(tabs_leg, 'Title', 'FL');
+tab2 = uitab(tabs_leg, 'Title', 'FR');
+tab3 = uitab(tabs_leg, 'Title', 'RL');
+tab4 = uitab(tabs_leg, 'Title', 'RR');
+
+tab_list = [tab1, tab2, tab3, tab4];
+
+for leg = 0:3
+    for xyz = 0:2
+        subplot(3,1,xyz+1,'Parent',tab_list(leg+1));
+        hold on; grid on;
+
+        ylim([-1,1]);
+
+        for node = 0:3
+            pos_id = 12 + leg*12 + node*3 + xyz;
+            plot(t_plot, status_record(DP0 + pos_id, range));
+        end
+
+        force_id = leg*3 + xyz;
+        h = plot(t_plot, status_record(DP0 + force_id, range) / 1000);
+        h.Color(4) = 1.0;
+
+        xlim(ZoomTime);
+        ylabel(xyz_names{xyz+1});
+
+        if xyz == 0
+            title([leg_names{leg+1}, ' leg nodes position and force/100']);
+            legend('hip','thigh','calf','foot','force/100','Location','northeast');
+        end
+
+        if xyz == 2
+            xlabel('t / s');
+        end
+    end
+end

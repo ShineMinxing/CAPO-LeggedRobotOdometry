@@ -316,7 +316,7 @@ namespace DataFusion
         };
 
         for(int i = 0; i < 3; i++)
-            StateSpaceModel->Double_Par[LegNumber * 3 + i] = tau_w[i];
+            StateSpaceModel->Double_Par[LegNumber * 3 + i] = FootBodyEff_WF[LegNumber][i];
 
         if(FootBodyEff_WF[LegNumber][2] >= 0.3 * FootEffortThreshold)
             FootfallProbability[LegNumber] = 0.0;

@@ -230,14 +230,8 @@ public:
             
             status[IndexSlopeEstimationEnable]       = legs_pos->SlopeModeEnable;
 
-            for(int i = 0; i < 9; i++){
-                status[20 + i] = sensors[0]->EstimatedState[i];
-            }
-            for(int i = 0; i < 9; i++){
-                status[30 + i] = sensors[1]->EstimatedState[i];
-            }
-            for(int i = 0; i < 60; i++){
-                status[40 + i] = sensors[0]->Double_Par[i];
+            for(int i = 0; i < 80; i++){
+                status[20 + i] = sensors[0]->Double_Par[i];
             }
         }
         else if (status[IndexInOrOut] == 3){
