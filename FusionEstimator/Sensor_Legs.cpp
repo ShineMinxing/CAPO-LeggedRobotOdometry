@@ -777,7 +777,7 @@ namespace DataFusion
             double err = yaw_est - yaw_now;
             array_angle_wrap(&err, &err, 1);
             legori_correct = yaw_now + legori_current_weight * err;
-            array_angle_wrap(&legori_correct, &legori_correct, 1);
+            UpdateEst_Quaternion();
         }
     }
 }

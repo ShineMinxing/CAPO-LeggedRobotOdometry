@@ -304,7 +304,7 @@ public:
 
         FLAG IsQuaternionOK = 0;
         array_quaternion_check(q, &IsQuaternionOK);
-        if (!IsQuaternionOK)
+        if (!IsQuaternionOK||!imu_gyro->IMUQuaternionEnable)
         {
             if(!legs_ori->JointsRPYEnable)
                 return odom;
@@ -318,7 +318,7 @@ public:
         }
         else
             array_quaternion_normalize(q, q);
-
+        
         const double CurrentTimestamp = 1e-3 * static_cast<double>(st.imu.timestamp);
         static double LastUsedTimestamp = 0, StartTimeStamp = 0;
 
@@ -350,9 +350,11 @@ public:
         msg_rpy[3*1] = pitch;
         msg_rpy[3*2] = yaw + yaw_correct;
 
-        msg_rpy[3*0 + 1] = static_cast<double>(st.imu.gyroscope[0]);
-        msg_rpy[3*1 + 1] = static_cast<double>(st.imu.gyroscope[1]);
-        msg_rpy[3*2 + 1] = static_cast<double>(st.imu.gyroscope[2]);
+        if(imu_gyro->IMUGyroEnable){
+            msg_rpy[3*0 + 1] = static_cast<double>(st.imu.gyroscope[0]);
+            msg_rpy[3*1 + 1] = static_cast<double>(st.imu.gyroscope[1]);
+            msg_rpy[3*2 + 1] = static_cast<double>(st.imu.gyroscope[2]);
+        }
 
         if(Signal_Available_Check(msg_rpy,1))
             imu_gyro->SensorDataHandle(msg_rpy, UsedTimestamp);
@@ -377,11 +379,6 @@ public:
                     legs_ori->SensorDataHandle(joint, UsedTimestamp);
 
                     yaw_correct = legs_ori->legori_correct - last_yaw;
-
-                    if (!imu_gyro->IMUQuaternionEnable) {
-                        sensors[1]->EstimatedState[6] = legs_ori->legori_correct;
-                        legs_ori->UpdateEst_Quaternion();
-                    }
                 }
             }
         }

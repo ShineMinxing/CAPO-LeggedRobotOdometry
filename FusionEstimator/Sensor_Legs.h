@@ -476,7 +476,7 @@ namespace DataFusion
     void SensorDataHandle(double* Message, double Time) override;
 
     inline void SetLegsPosRef(class SensorLegsPos* ref){ legs_pos_ref_ = ref; }
-    double legori_init_weight = 0.001, legori_time_weight = 1000.0, legori_current_weight = 0.001, legori_correct = 0;
+    double legori_init_weight = 0.001, legori_time_weight = 10000.0, legori_current_weight = 0.0001, legori_correct = 0;
 
     bool JointsRPYEnable = false;
 

@@ -54,8 +54,6 @@ status_ = fusion_estimator_mex('status',status_);
 status_(1) = 2;
 status_ = fusion_estimator_mex('status',status_);
 status_(1:7) = 1;
-status_(14) = 0.0000001;
-status_(15) = 10000000;
 status_ = fusion_estimator_mex('status',status_);
 
 odom_log = nan(N, 27);
@@ -114,6 +112,7 @@ tabs_state = uitabgroup;
 
 tab_pos = uitab(tabs_state, 'Title', 'Position');
 tab_vel = uitab(tabs_state, 'Title', 'Velocity');
+tab_ori = uitab(tabs_state, 'Title', 'Orientation');
 
 subplot(1,1,1,'Parent',tab_pos);
 hold on; grid on;
@@ -136,6 +135,17 @@ legend('vX','vY','vZ','Location','northeast','FontSize', WordSize);
 xlabel('Time /s','FontSize', WordSize);
 ylabel('Estimated Velocity /m/s','FontSize', WordSize);
 title('CAPO Method Velocity Check','FontSize', WordSize);
+
+subplot(1,1,1,'Parent',tab_ori);
+hold on; grid on;
+plot(t_plot, odom_log(range,11));
+plot(t_plot, odom_log(range,12));
+plot(t_plot, odom_log(range,13));
+xlim(ZoomTime);
+legend('Roll','Pitch','Yaw','Location','northeast','FontSize', WordSize);
+xlabel('Time /s','FontSize', WordSize);
+ylabel('Estimated Orientation /rad','FontSize', WordSize);
+title('CAPO Method Orientation Check','FontSize', WordSize);
 
 
 % figure(30); clf;
