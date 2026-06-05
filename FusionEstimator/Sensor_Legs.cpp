@@ -697,13 +697,13 @@ namespace DataFusion
 
     void SensorLegsOri::SensorDataHandle(double* Message, double Time) 
     {
-        if(!JointsRPYEnable)
-            return;
-        
         static double TimeRecord = Time;
         int LegNumber, i;
-
         int n_ground = 0;
+        const double yaw_now = StateSpaceModel->EstimatedState[6];
+
+        legori_correct = yaw_now;
+
         for (LegNumber = 0; LegNumber < legs_pos_ref_->ContactChainNum; LegNumber++) {
             if (legs_pos_ref_->FootIsOnGround[LegNumber])
                 n_ground++;
@@ -721,8 +721,6 @@ namespace DataFusion
             if(legori_current_weight>1.0)
                 legori_current_weight = 1.0;
         }
-
-        const double yaw_now = StateSpaceModel->EstimatedState[6];
 
         double q_yaw_inv[4];
         double array_EulerZYX[3] = {0.0, 0.0, -yaw_now};
@@ -757,8 +755,13 @@ namespace DataFusion
                 double yaw_ij = ang_w - ang_rp;
                 array_angle_wrap(&yaw_ij, &yaw_ij, 1);
 
-                sx += std::cos(yaw_ij);
-                sy += std::sin(yaw_ij);
+                const double pair_weight = legs_pos_ref_->FootfallProbability[i] * legs_pos_ref_->FootfallProbability[j];
+
+                if (pair_weight <= 0.0)
+                    continue;
+
+                sx += pair_weight * std::cos(yaw_ij);
+                sy += pair_weight * std::sin(yaw_ij);
 
                 int k = i+j;
                 if(i==0)
@@ -775,7 +778,6 @@ namespace DataFusion
             array_angle_wrap(&err, &err, 1);
             legori_correct = yaw_now + legori_current_weight * err;
             array_angle_wrap(&legori_correct, &legori_correct, 1);
-            UpdateEst_Quaternion();
         }
     }
 }

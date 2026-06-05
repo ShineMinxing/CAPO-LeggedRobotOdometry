@@ -2,12 +2,12 @@ clear all;clc;
 cd(fileparts(mfilename('fullpath')));
 
 % CSV_PATH = 'Data/GO2Stairs'; DogMode = 99;
-% CSV_PATH = 'Data/GO2Flat'; DogMode = 99;
+CSV_PATH = 'Data/GO2Flat'; DogMode = 99;
 
 % CSV_PATH = 'Data/SP_XY85.csv';  DogMode = 7;
 
 % CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 4;
-CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 6;
+% CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 6;
 
 % CSV_PATH = 'Data/LW_XY150Z10_1.csv';  DogMode = 5;
 % CSV_PATH = 'Data/LW_XY150Z10_3.csv';  DogMode = 5;
@@ -53,9 +53,9 @@ status_(1) = DogMode;
 status_ = fusion_estimator_mex('status',status_);
 status_(1) = 2;
 status_ = fusion_estimator_mex('status',status_);
-status_(1:7) = 1;
-status_(14) = 0.0000001;
-status_(15) = 10000000;
+status_(1:8) = 1;
+status_(14) = 0.0001;
+status_(15) = 100000;
 status_ = fusion_estimator_mex('status',status_);
 
 odom_log = nan(N, 27);

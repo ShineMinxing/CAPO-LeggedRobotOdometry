@@ -305,8 +305,19 @@ public:
         FLAG IsQuaternionOK = 0;
         array_quaternion_check(q, &IsQuaternionOK);
         if (!IsQuaternionOK)
-            return odom;
-        array_quaternion_normalize(q, q);
+        {
+            if(!legs_ori->JointsRPYEnable)
+                return odom;
+            else
+            {
+                q[0] = 1;
+                q[1] = 0;
+                q[2] = 0;
+                q[3] = 0;
+            }
+        }
+        else
+            array_quaternion_normalize(q, q);
 
         const double CurrentTimestamp = 1e-3 * static_cast<double>(st.imu.timestamp);
         static double LastUsedTimestamp = 0, StartTimeStamp = 0;
@@ -369,6 +380,7 @@ public:
 
                     if (!imu_gyro->IMUQuaternionEnable) {
                         sensors[1]->EstimatedState[6] = legs_ori->legori_correct;
+                        legs_ori->UpdateEst_Quaternion();
                     }
                 }
             }

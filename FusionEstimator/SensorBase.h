@@ -37,6 +37,7 @@ namespace DataFusion
       double SensorQuaternion[4]    = {1,0,0,0};
       double SensorQuaternionInv[4] = {1,0,0,0};
 
+      void UpdateEst_Quaternion();
 
     protected:
 
@@ -48,7 +49,6 @@ namespace DataFusion
       double ObservationTime = 0;
       double R_diag[9] = {1,1,1,1,1,1,1,1,1};
 
-      void UpdateEst_Quaternion();
       void ObservationCorrect_Position();
       void ObservationCorrect_Velocity();
       void ObservationCorrect_Acceleration();
