@@ -13,7 +13,7 @@ In 3D closed-loop trials (a **200 m** horizontal and **15 m** vertical loop), As
 Welcome to join the wechat group
 
 <p align="center">
-  <img src="https://i0.hdslb.com/bfs/new_dyn/a922a574770c0e9f1c6266fdf5c26a9133671525.jpg"
+  <img src="https://i0.hdslb.com/bfs/new_dyn/88e90cc1a9b5151d14b979bcc6bfc2cf33671525.png"
        alt="WeChat group QR code"
        width="200">
 </p>
