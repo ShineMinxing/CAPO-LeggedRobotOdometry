@@ -372,12 +372,10 @@ public:
             if (Signal_Available_Check(joint,2)||legs_pos->CalculateWeightEnable) {
                 legs_pos->SensorDataHandle(joint, UsedTimestamp);
                 legs_pos->LoadedWeightCheck(joint, UsedTimestamp);
-                
+
+                const double last_yaw = sensors[1]->EstimatedState[6] - yaw_correct;
+                legs_ori->SensorDataHandle(joint, UsedTimestamp);
                 if (legs_ori->JointsRPYEnable) {
-                    const double last_yaw = sensors[1]->EstimatedState[6] - yaw_correct;
-
-                    legs_ori->SensorDataHandle(joint, UsedTimestamp);
-
                     yaw_correct = legs_ori->legori_correct - last_yaw;
                 }
             }
