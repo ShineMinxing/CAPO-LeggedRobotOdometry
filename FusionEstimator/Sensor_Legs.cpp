@@ -601,20 +601,17 @@ namespace DataFusion
             {
                 if (!FootIsOnGroundTemp[LegNumber]) continue;
 
-                double CalculatedPosition[3];
+                double CalculatedPosition[2];
                 CalculatedPosition[0] = FootfallPositionRecordTemp[WheelMoveRefLeg][0] + FootBodyPos_WF[LegNumber][0] - FootBodyPos_WF[WheelMoveRefLeg][0];
                 CalculatedPosition[1] = FootfallPositionRecordTemp[WheelMoveRefLeg][1] + FootBodyPos_WF[LegNumber][1] - FootBodyPos_WF[WheelMoveRefLeg][1];
-                CalculatedPosition[2] = FootfallPositionRecordTemp[WheelMoveRefLeg][2] + FootBodyPos_WF[LegNumber][2] - FootBodyPos_WF[WheelMoveRefLeg][2];
 
                 double dx = CalculatedPosition[0] - FootfallPositionRecordTemp[LegNumber][0];
                 double dy = CalculatedPosition[1] - FootfallPositionRecordTemp[LegNumber][1];
-                double dz = CalculatedPosition[2] - FootfallPositionRecordTemp[LegNumber][2];
 
-                if (dx * dx + dy * dy + dz * dz > WheelPositionMismatchThreshold * WheelPositionMismatchThreshold)
+                if (dx * dx + dy * dy > WheelPositionMismatchThreshold * WheelPositionMismatchThreshold)
                 {
                     FootfallPositionRecordTemp[LegNumber][0] = CalculatedPosition[0];
                     FootfallPositionRecordTemp[LegNumber][1] = CalculatedPosition[1];
-                    FootfallPositionRecordTemp[LegNumber][2] = CalculatedPosition[2];
                     FootIsOnGroundTemp[LegNumber] = false;
                 }
             }
@@ -807,7 +804,6 @@ namespace DataFusion
         StateSpaceModel->Matrix_H[8 * StateSpaceModel->Nx + 8] = 1.0;
 
         StateSpaceModel_Go2_EstimatorPort(Observation, Time, StateSpaceModel);
-        UpdateEst_Quaternion();
 
         if (!JointsRPYEnable || n_ground < 2)
             return;
