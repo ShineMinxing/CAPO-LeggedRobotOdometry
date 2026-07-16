@@ -10,13 +10,7 @@ For side-by-side comparison, **`Matlab/Comparison/invariant-ekf/`** provides a M
 
 In 3D closed-loop trials (a **200 m** horizontal and **15 m** vertical loop), Astrall point-foot robot A achieves **0.1638 m** horizontal error and **0.219 m** vertical error; for wheel-legged robot B, the corresponding errors are **0.2264 m** and **0.199 m**.
 
-Welcome to join the wechat group
-
-<p align="center">
-  <img src="https://i0.hdslb.com/bfs/new_dyn/88e90cc1a9b5151d14b979bcc6bfc2cf33671525.png"
-       alt="WeChat group QR code"
-       width="200">
-</p>
+Welcome to add my wechat 401435318 and join a wechat group.
 
 ---
 
