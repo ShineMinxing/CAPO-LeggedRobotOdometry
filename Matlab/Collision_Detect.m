@@ -28,7 +28,7 @@ tilt_step_deg = 10;
 collision_dead_time = 1.0;     % 确认一次碰撞后，后续屏蔽时间 /s
 
 velocity_average_frames = 10;  % 撞击前10帧平均速度，不包含当前帧
-velocity_min = 0.2;            % 速度过小时，速度方向不可信 /m/s
+velocity_min = 0.15;            % 速度过小时，速度方向不可信 /m/s
 
 % abs(YawAcc)只用于放宽“速度反向与ImpactAcc”的允许夹角
 angle_base_deg = 30;           % YawAcc=0时允许夹角
