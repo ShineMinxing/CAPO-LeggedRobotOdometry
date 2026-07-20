@@ -265,7 +265,7 @@ private:
     void BodyJointMarkerPublish()
     {
         double status[100] = {0};
-        status[IndexInOrOut] = 2;
+        status[IndexInOrOut] = 4;
         fe_.fusion_estimator_status(status);
 
         visualization_msgs::msg::MarkerArray markers;
@@ -292,11 +292,11 @@ private:
 
             for (int node = 0; node < 4; ++node)
             {
-                const int pos_id = 12 + leg * 12 + node * 3;
+                const int pos_id = leg * 12 + node * 3;
 
-                const double x = status[20 + pos_id + 0] + odom_.XPos;
-                const double y = status[20 + pos_id + 1] + odom_.YPos;
-                const double z = status[20 + pos_id + 2] + odom_.ZPos;
+                const double x = status[pos_id + 0] + odom_.XPos;
+                const double y = status[pos_id + 1] + odom_.YPos;
+                const double z = status[pos_id + 2] + odom_.ZPos;
 
                 visualization_msgs::msg::Marker marker;
 
@@ -353,18 +353,18 @@ private:
             }
 
             markers.markers.push_back(line);
-            const int foot_pos_id = 12 + leg * 12 + 3 * 3;
-            const int force_id = leg * 3;
+            const int foot_pos_id = leg * 12 + 3 * 3;
+            const int force_id = 48 + leg * 3;
 
             geometry_msgs::msg::Point p0, p1;
 
-            p0.x = status[20 + foot_pos_id + 0] + odom_.XPos;
-            p0.y = status[20 + foot_pos_id + 1] + odom_.YPos;
-            p0.z = status[20 + foot_pos_id + 2] + odom_.ZPos;
+            p0.x = status[foot_pos_id + 0] + odom_.XPos;
+            p0.y = status[foot_pos_id + 1] + odom_.YPos;
+            p0.z = status[foot_pos_id + 2] + odom_.ZPos;
 
-            p1.x = p0.x - status[20 + force_id + 0] / 1000.0;
-            p1.y = p0.y - status[20 + force_id + 1] / 1000.0;
-            p1.z = p0.z - status[20 + force_id + 2] / 1000.0;
+            p1.x = p0.x - status[force_id + 0] / 1000.0;
+            p1.y = p0.y - status[force_id + 1] / 1000.0;
+            p1.z = p0.z - status[force_id + 2] / 1000.0;
 
             visualization_msgs::msg::Marker force_arrow;
             force_arrow.header.stamp = SMXFE_odom.header.stamp;

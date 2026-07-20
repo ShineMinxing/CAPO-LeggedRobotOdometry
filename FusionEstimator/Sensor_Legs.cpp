@@ -28,10 +28,10 @@ namespace DataFusion
             
             for(i = 0; i < 3; i++)
             {
-                StateSpaceModel->Double_Par[12 + LegNumber * 12 + 0 * 3 + i] = LegChains_[LegNumber].node_pos_wf[0][i];
-                StateSpaceModel->Double_Par[12 + LegNumber * 12 + 1 * 3 + i] = LegChains_[LegNumber].node_pos_wf[1][i];
-                StateSpaceModel->Double_Par[12 + LegNumber * 12 + 2 * 3 + i] = LegChains_[LegNumber].node_pos_wf[2][i];
-                StateSpaceModel->Double_Par[12 + LegNumber * 12 + 3 * 3 + i] = FootBodyPos_WF[LegNumber][i];
+                StateSpaceModel->Double_Par[0 + LegNumber * 12 + 0 * 3 + i] = LegChains_[LegNumber].node_pos_wf[0][i];
+                StateSpaceModel->Double_Par[0 + LegNumber * 12 + 1 * 3 + i] = LegChains_[LegNumber].node_pos_wf[1][i];
+                StateSpaceModel->Double_Par[0 + LegNumber * 12 + 2 * 3 + i] = LegChains_[LegNumber].node_pos_wf[2][i];
+                StateSpaceModel->Double_Par[0 + LegNumber * 12 + 3 * 3 + i] = FootBodyPos_WF[LegNumber][i];
             }
 
             if(JointsXYZEnable){
@@ -326,7 +326,7 @@ namespace DataFusion
         FootBodyTorq_WF[LegNumber][2] = FootBodyPos_WF[LegNumber][0] * FootBodyEff_WF[LegNumber][1] - FootBodyPos_WF[LegNumber][1] * FootBodyEff_WF[LegNumber][0];
 
         for(int i = 0; i < 3; i++)
-            StateSpaceModel->Double_Par[LegNumber * 3 + i] = FootBodyEff_WF[LegNumber][i];
+            StateSpaceModel->Double_Par[48 + LegNumber * 3 + i] = FootBodyEff_WF[LegNumber][i];
 
         if(FootBodyEff_WF[LegNumber][2] >= 0.3 * FootEffortThreshold)
             FootfallProbability[LegNumber] = 0.0;
@@ -575,7 +575,7 @@ namespace DataFusion
                 ShankRollPrev[LegNumber] = temp;
 
                 WheelMove = LegChains_[LegNumber].wheel_radius * (WheelRotationAngle - ShankPitchAngle);
-                WheelSidewayMove = LegChains_[LegNumber].wheel_radius * 2.0 * std::sin(0.5 * ShankRollAngle);
+                WheelSidewayMove = (LegChains_[LegNumber].wheel_radius + LegChains_[LegNumber].wheel_width) * 2.0 * std::sin(0.5 * ShankRollAngle);
                 WheelVel = LegChains_[LegNumber].wheel_radius * WheelRotationVelocityEff;
 
                 if (WheelMoveRefLeg < 0 || std::abs(WheelMove) < WheelMoveAbsMin)

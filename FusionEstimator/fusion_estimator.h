@@ -229,10 +229,6 @@ public:
             status[IndexLegOrientationTimeWeight]    = legs_ori->legori_time_weight;
             
             status[IndexSlopeEstimationEnable]       = legs_pos->SlopeModeEnable;
-
-            for(int i = 0; i < 80; i++){
-                status[20 + i] = sensors[0]->Double_Par[i];
-            }
         }
         else if (status[IndexInOrOut] == 3){
             status[IndexInOrOut] = 0;
@@ -248,32 +244,9 @@ public:
             legs_pos->FootfallPositionRecordIsInitiated[3] = false;
         }
         else if (status[IndexInOrOut] == 4){
-            status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 40;
-            if (status[IndexStatusOK] > 999)
-                status[IndexStatusOK] = 1;
-            legs_pos->UseMP();
-        }
-        else if (status[IndexInOrOut] == 5){
-            status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 60;
-            if (status[IndexStatusOK] > 999)
-                status[IndexStatusOK] = 1;
-            legs_pos->UseLW();
-        }
-        else if (status[IndexInOrOut] == 6){
-            status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 80;
-            if (status[IndexStatusOK] > 999)
-                status[IndexStatusOK] = 1;
-            legs_pos->UseMW();
-        }
-        else if (status[IndexInOrOut] == 7){
-            status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 100;
-            if (status[IndexStatusOK] > 999)
-                status[IndexStatusOK] = 1;
-            legs_pos->UseSP();
+            for(int i = 0; i < 100; i++){
+                status[i] = sensors[0]->Double_Par[i];
+            }
         }
         else if (status[IndexInOrOut] == 98){
             status[IndexInOrOut] = 0;
@@ -288,6 +261,34 @@ public:
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
             legs_pos->UseGo2P();
+        }
+        else if (status[IndexInOrOut] == 121){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 120;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseSP();
+        }
+        else if (status[IndexInOrOut] == 140){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 140;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseMW();
+        }
+        else if (status[IndexInOrOut] == 141){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 141;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseMP();
+        }
+        else if (status[IndexInOrOut] == 160){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 160;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseLW();
         }
     }
 
