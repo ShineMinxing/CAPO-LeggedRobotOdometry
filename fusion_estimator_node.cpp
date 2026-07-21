@@ -63,7 +63,7 @@ public:
         status[IndexIMUQuaternionEnable]         = imu_data_enable ? 1.0 : 0.0;
         status[IndexIMUGyroEnable]               = imu_data_enable ? 1.0 : 0.0;
         status[IndexJointsXYZEnable]             = leg_pos_enable ? 1.0 : 0.0;
-        status[IndexJointsVelocityXYZEnable]     = leg_vel_enable ? 1.0 : 0.0;
+        status[IndexJointsXYZVelEnable]          = leg_vel_enable ? 1.0 : 0.0;
         status[IndexJointsRPYEnable]             = leg_ori_enable ? 1.0 : 0.0;
         status[IndexSlopeEstimationEnable]       = slope_mode_enable ? 1.0 : 0.0;
         // Threshold/Weight
@@ -428,7 +428,7 @@ int main(int argc, char ** argv)
     .automatically_declare_parameters_from_overrides(true)
     .arguments({
         "--ros-args",
-        "--params-file", "/home/smx/WorkSpace/GDS_LeggedRobot/src/CAPO-LeggedRobotOdometry/config.yaml"
+        "--params-file", "/workspace/LeggedRobot/src/CAPO-LeggedRobotOdometry/config.yaml"
     });
 
   auto node = std::make_shared<FusionEstimatorNode>(options);

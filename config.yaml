@@ -19,34 +19,34 @@ fusion_estimator_node:
     #   A[34 38 42 46]
     # and set other torque slots A[32 ~ 47] to 0.
 
-    # 订阅复位/模式命令的 ROS2 Topic
+    # subscribe reset/mode topic
     sub_mode_topic: "SMX/SportCmd"
 
-    # 发布全 3D 里程计的 Topic
+    # publish 3D Odometry topic
     pub_odom_topic: "SMX/Odom"
 
-    # 发布平面里程计的 Topic
+    # publish 2D Odometry topic
     pub_odom2d_topic: "SMX/Odom_2D"
 
-    # Odometry 消息里的 frame_id
+    # frame_id for Odometry Topic
     odom_frame: "odom"
 
-    # Odometry 消息里的 child_frame_id
+    # child_frame_id for Odometry Topic
     base_frame: "base_link"
     base_frame_2d: "base_link_2D"
 
-    # 各关节的身体坐标系连线
+    # publish joint link marker array (rviz)
     pub_body_joint_marker_enable: true
     pub_body_joint_marker_topic: "SMX/Joints_Marker"
 
-    # IMU使能
+    # IMU enable
     imu_data_enable: true
-    # 运动学估计使能
+    # legged robot odometry enable (core algorithm)
     leg_pos_enable: true
     leg_vel_enable: true
-    # yaw漂移修正使能，会降低运动的位置估计精度，但避免长时间站立的yaw漂移
+    # yaw drift correct enable, which might decrease position estimation accuracy but avoid yaw drift during long-term standing
     leg_ori_enable: false
-    # 轮足狗斜坡模式使能，会降低爬楼梯的高度估计精度
+    # wheel-legged dog slope mode enable, which might decrease stair-climbing height estimation accuracy
     slope_mode_enable: true
 
     contact_sensor_threshold: 20.0  # set this if you use contact sensor, or use 0.0, suggest 20.0 for unitree Go2
