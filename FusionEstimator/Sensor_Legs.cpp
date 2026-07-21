@@ -905,8 +905,8 @@ namespace DataFusion
             const double angle_error = std::atan2(std::fabs(vy_mean * impact_x - vx_mean * impact_y), -vx_mean * impact_x - vy_mean * impact_y);
             const double angle_allow = std::fmin(30.0 + 5.0 * std::fabs(StateSpaceModel->EstimatedState[8]), 75.0) * M_PI / 180.0;
 
-            // 速度大于0.2m/s，且加速度大于机器狗倾斜度因子*2.5m/s/s的基准，且加速度方向与速度方向夹角小于允许角度(30~75度)，且距离上次碰撞时间大于3s，则判定为碰撞
-            if (velocity_norm >= 0.2 && velocity_xy > 1e-9 && impact_norm > 2.5 * tilt_factor && angle_error <= angle_allow && Time - last_collision_time >= 3.0)
+            // 速度大于0.3m/s，且加速度大于机器狗倾斜度因子*3.0m/s/s的基准，且加速度方向与速度方向夹角小于允许角度(30~75度)，且距离上次碰撞时间大于3s，则判定为碰撞
+            if (velocity_norm >= 0.3 && velocity_xy > 1e-9 && impact_norm > 3.0 * tilt_factor && angle_error <= angle_allow && Time - last_collision_time >= 3.0)
             {
                 const double cy = std::cos(StateSpaceModel->EstimatedState[6]);
                 const double sy = std::sin(StateSpaceModel->EstimatedState[6]);
@@ -948,5 +948,7 @@ namespace DataFusion
         velocity_history[history_index][2] = StateSpaceModel->EstimatedState[7];
 
         history_index = (history_index + 1) % 10;
+
+        legs_pos_ref_->StateSpaceModel->Double_Par[60] = CollisionDetectedLeg;
     }
 }
