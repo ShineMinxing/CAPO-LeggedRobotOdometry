@@ -1,8 +1,8 @@
 clear all;clc;
 cd(fileparts(mfilename('fullpath')));
 
-% CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
-CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 140;
+CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
+% CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
 
 used_lines = 300000;
 

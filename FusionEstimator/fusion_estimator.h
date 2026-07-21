@@ -45,8 +45,9 @@ Configuration index meaning:
     IndexIMUGyroEnable = 4
 
     IndexJointsXYZEnable = 5
-    IndexJointsVelocityXYZEnable = 6
+    IndexJointsXYZVelEnable = 6
     IndexJointsRPYEnable = 7
+    IndexJointsRPYAccEnable = 8
 
     IndexSlopeModeTimeThreshold = 8
     IndexSlopeModeAngleThreshold = 9
@@ -127,19 +128,21 @@ enum ConfigIndex {
     IndexIMUQuaternionEnable = 3,
     IndexIMUGyroEnable = 4,  
     IndexJointsXYZEnable = 5,
-    IndexJointsVelocityXYZEnable = 6,
+    IndexJointsXYZVelEnable = 6,
     IndexJointsRPYEnable = 7,
+    IndexJointsRPYAccEnable = 8,
 
-    IndexSlopeModeTimeThreshold = 8,
-    IndexSlopeModeAngleThreshold = 9,
-    IndexLegFootForceThreshold = 10,  
-    IndexLegMinStairHeight = 11,
-    IndexStairHeightFogotten = 12,
+    IndexSlopeModeTimeThreshold = 10,
+    IndexSlopeModeAngleThreshold = 11,
+    IndexLegFootForceThreshold = 12,  
+    IndexLegMinStairHeight = 13,
+    IndexStairHeightFogotten = 14,
 
-    IndexLegOrientationInitialWeight = 13, 
-    IndexLegOrientationTimeWeight = 14,
+    IndexLegOrientationInitialWeight = 15, 
+    IndexLegOrientationTimeWeight = 16,
 
-    IndexSlopeEstimationEnable = 15,
+    IndexSlopeEstimationEnable = 17,
+    IndexCollisionDetectEnable = 18,
 };
 
 class FusionEstimatorCore
@@ -159,7 +162,7 @@ public:
         legs_ori    = std::make_shared<DataFusion::SensorLegsOri>   (sensors[1]);
         legs_ori->SetLegsPosRef(legs_pos.get());
 
-        yaw_correct = 0.0;
+        legs_ori->yaw_correct = 0.0;
     }
 
     ~FusionEstimatorCore()
@@ -192,8 +195,9 @@ public:
             imu_gyro->IMUQuaternionEnable       = status[IndexIMUQuaternionEnable];
             imu_gyro->IMUGyroEnable             = status[IndexIMUGyroEnable];
             legs_pos->JointsXYZEnable           = status[IndexJointsXYZEnable];
-            legs_pos->JointsXYZVelocityEnable   = status[IndexJointsVelocityXYZEnable];
+            legs_pos->JointsXYZVelocityEnable   = status[IndexJointsXYZVelEnable];
             legs_ori->JointsRPYEnable           = status[IndexJointsRPYEnable];
+            legs_ori->JointsRPYAccEnable        = status[IndexJointsRPYAccEnable];
 
             legs_pos->SlopeModeTimeThreshold    = status[IndexSlopeModeTimeThreshold];
             legs_pos->SlopeModeAngleThreshold   = status[IndexSlopeModeAngleThreshold];
@@ -205,6 +209,7 @@ public:
             legs_ori->legori_time_weight        = status[IndexLegOrientationTimeWeight];
             
             legs_pos->SlopeModeEnable           = status[IndexSlopeEstimationEnable];
+            legs_ori->CollisionDetectEnable     = status[IndexCollisionDetectEnable];
         }
         else if (status[IndexInOrOut] == 2){
             status[IndexInOrOut] = 0;
@@ -216,8 +221,9 @@ public:
             status[IndexIMUQuaternionEnable]         = imu_gyro->IMUQuaternionEnable;
             status[IndexIMUGyroEnable]               = imu_gyro->IMUGyroEnable;
             status[IndexJointsXYZEnable]             = legs_pos->JointsXYZEnable;
-            status[IndexJointsVelocityXYZEnable]     = legs_pos->JointsXYZVelocityEnable;
+            status[IndexJointsXYZVelEnable]          = legs_pos->JointsXYZVelocityEnable;
             status[IndexJointsRPYEnable]             = legs_ori->JointsRPYEnable;
+            status[IndexJointsRPYAccEnable]          = legs_ori->JointsRPYAccEnable;
 
             status[IndexSlopeModeTimeThreshold]      = legs_pos->SlopeModeTimeThreshold ;
             status[IndexSlopeModeAngleThreshold]     = legs_pos->SlopeModeAngleThreshold;
@@ -229,6 +235,8 @@ public:
             status[IndexLegOrientationTimeWeight]    = legs_ori->legori_time_weight;
             
             status[IndexSlopeEstimationEnable]       = legs_pos->SlopeModeEnable;
+            status[IndexCollisionDetectEnable]       = legs_ori->CollisionDetectEnable;
+
         }
         else if (status[IndexInOrOut] == 3){
             status[IndexInOrOut] = 0;
@@ -237,7 +245,7 @@ public:
                 status[IndexStatusOK] = 1;
             sensors[0]->EstimatedState[0] = 0;
             sensors[0]->EstimatedState[3] = 0;
-            yaw_correct = yaw_correct - sensors[1]->EstimatedState[6];
+            legs_ori->yaw_correct = legs_ori->yaw_correct - sensors[1]->EstimatedState[6];
             legs_pos->FootfallPositionRecordIsInitiated[0] = false;
             legs_pos->FootfallPositionRecordIsInitiated[1] = false;
             legs_pos->FootfallPositionRecordIsInitiated[2] = false;
@@ -274,14 +282,21 @@ public:
             status[IndexStatusOK] = status[IndexStatusOK] + 140;
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
-            legs_pos->UseMW();
+            legs_pos->UseMW_D();
         }
         else if (status[IndexInOrOut] == 141){
             status[IndexInOrOut] = 0;
             status[IndexStatusOK] = status[IndexStatusOK] + 141;
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
-            legs_pos->UseMP();
+            legs_pos->UseMP_A();
+        }
+        else if (status[IndexInOrOut] == 142){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 142;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseMW_B();
         }
         else if (status[IndexInOrOut] == 160){
             status[IndexInOrOut] = 0;
@@ -349,7 +364,7 @@ public:
 
         msg_rpy[3*0] = roll;
         msg_rpy[3*1] = pitch;
-        msg_rpy[3*2] = yaw + yaw_correct;
+        msg_rpy[3*2] = yaw + legs_ori->yaw_correct;
 
         if(imu_gyro->IMUGyroEnable){
             msg_rpy[3*0 + 1] = static_cast<double>(st.imu.gyroscope[0]);
@@ -370,16 +385,23 @@ public:
                 joint[32 + i] = static_cast<double>(m.tauEst);
             }
 
-            if (Signal_Available_Check(joint,2)||legs_pos->CalculateWeightEnable) {
-                legs_pos->SensorDataHandle(joint, UsedTimestamp);
-                legs_pos->LoadedWeightCheck(joint, UsedTimestamp);
+            if (Signal_Available_Check(joint,2)) {
 
-                const double last_yaw = sensors[1]->EstimatedState[6] - yaw_correct;
-                legs_ori->SensorDataHandle(joint, UsedTimestamp);
-                if (legs_ori->JointsRPYEnable) {
-                    yaw_correct = legs_ori->legori_correct - last_yaw;
-                }
+                legs_pos->SensorDataHandle(joint, UsedTimestamp);
+
+                if(legs_pos->CalculateWeightEnable)
+                    legs_pos->LoadedWeightCheck(joint, UsedTimestamp);
+
+                if(legs_ori->JointsRPYAccEnable) 
+                    legs_ori->SensorDataHandle(joint, UsedTimestamp);
+
+                if(legs_ori->JointsRPYEnable)
+                    legs_ori->CorrectYawByFootfall(joint, UsedTimestamp);
+                
+                if(legs_ori->CollisionDetectEnable)
+                    legs_ori->CollisionDetect(UsedTimestamp);
             }
+
         }
 
         odom.XPos = static_cast<float>(sensors[0]->EstimatedState[0]);
@@ -427,9 +449,6 @@ private:
     std::shared_ptr<DataFusion::SensorIMUMagGyro> imu_gyro;
     std::shared_ptr<DataFusion::SensorLegsPos>    legs_pos;
     std::shared_ptr<DataFusion::SensorLegsOri>    legs_ori;
-
-    double legori_init_weight, legori_time_weight;
-    double yaw_correct;
 
     bool Signal_Available_Check(double Signal[], int type)
     {

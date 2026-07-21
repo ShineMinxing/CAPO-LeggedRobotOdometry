@@ -4,10 +4,6 @@ namespace DataFusion
 {
     void SensorLegsPos::SensorDataHandle(double* Message, double Time) 
     {
-        if((!JointsXYZEnable)&&(!JointsXYZVelocityEnable)){
-            return;
-        }
-
         int i, LegNumber;
         ObservationTime = Time;
         
@@ -760,14 +756,10 @@ namespace DataFusion
 
     void SensorLegsOri::SensorDataHandle(double* Message, double Time) 
     {
-        static double TimeRecord = Time;
-        int LegNumber, i;
+        int i;
         int n_ground = 0;
-        const double yaw_now = StateSpaceModel->EstimatedState[6];
 
-        legori_correct = yaw_now;
-
-        for (LegNumber = 0; LegNumber < legs_pos_ref_->ContactChainNum; LegNumber++) {
+        for (int LegNumber = 0; LegNumber < legs_pos_ref_->ContactChainNum; LegNumber++) {
             if (legs_pos_ref_->FootIsOnGround[LegNumber])
                 n_ground++;
         }
@@ -775,9 +767,6 @@ namespace DataFusion
         if (n_ground < 2) {
             return;
         }
-
-        if (n_ground < 1)
-            return;
 
         double tau_w[3] = {0.0, 0.0, 0.0};
 
@@ -804,13 +793,23 @@ namespace DataFusion
         StateSpaceModel->Matrix_H[8 * StateSpaceModel->Nx + 8] = 1.0;
 
         StateSpaceModel_Go2_EstimatorPort(Observation, Time, StateSpaceModel);
+    }
 
-        if (!JointsRPYEnable || n_ground < 2)
-            return;
+    void SensorLegsOri::CorrectYawByFootfall(double* Message, double Time) 
+    {
+        int i;
+        int n_ground = 0;
+        static double TimeRecord = Time;
+
+        for (int LegNumber = 0; LegNumber < legs_pos_ref_->ContactChainNum; LegNumber++) {
+            if (legs_pos_ref_->FootIsOnGround[LegNumber])
+                n_ground++;
+        }
 
         if (n_ground < legs_pos_ref_->ContactChainNum){
             TimeRecord = Time;
             legori_current_weight = legori_init_weight;
+            return;
         }
         else{
             legori_current_weight = (Time-TimeRecord) * (1.0 - legori_init_weight) /legori_time_weight + legori_init_weight;
@@ -819,18 +818,14 @@ namespace DataFusion
         }
 
         double q_yaw_inv[4];
-        double array_EulerZYX[3] = {0.0, 0.0, -yaw_now};
+        double array_EulerZYX[3] = {0.0, 0.0, - StateSpaceModel->EstimatedState[6]};
         array_eulerZYX_to_quaternion(array_EulerZYX, q_yaw_inv);
         array_quaternion_normalize(q_yaw_inv, q_yaw_inv);
 
         double sx = 0.0, sy = 0.0;
         for (i = 0; i < legs_pos_ref_->ContactChainNum; ++i) {
-            if(!legs_pos_ref_->FootIsOnGround[i])
-                continue;
 
             for (int j = i + 1; j < legs_pos_ref_->ContactChainNum; ++j) {
-                if(!legs_pos_ref_->FootIsOnGround[j])
-                    continue;
 
                 double v_wf[3] = {
                     legs_pos_ref_->FootBodyPos_WF[j][0] - legs_pos_ref_->FootBodyPos_WF[i][0],
@@ -869,11 +864,89 @@ namespace DataFusion
 
         if (sx != 0.0 || sy != 0.0) {
             const double yaw_est = std::atan2(sy, sx);
-            const double yaw_now = StateSpaceModel->EstimatedState[6];
-            double err = yaw_est - yaw_now;
+            double err = yaw_est - StateSpaceModel->EstimatedState[6];
             array_angle_wrap(&err, &err, 1);
-            legori_correct = yaw_now + legori_current_weight * err;
+            yaw_correct += legori_current_weight * err;
             UpdateEst_Quaternion();
         }
+    }
+    
+    void SensorLegsOri::CollisionDetect(double Time)
+    {
+        static double velocity_history[10][3] = {{0.0}};
+        static double vx_mean = 0.0;
+        static double vy_mean = 0.0;
+        static double yaw_velocity_mean = 0.0;
+        static int history_count = 0;
+        static int history_index = 0;
+        static double last_collision_time = -1e100;
+
+        CollisionDetectedLeg = 0;
+
+        if (history_count == 10)
+        {
+            const double velocity_xy = std::hypot(vx_mean, vy_mean);
+            const double velocity_norm = std::hypot(velocity_xy, 0.5 * yaw_velocity_mean);
+
+            double impact_x = 0.0;
+            double impact_y = 0.0;
+
+            for (int leg = 0; leg < legs_pos_ref_->ContactChainNum; ++leg)
+            {
+                impact_x += legs_pos_ref_->FootBodyEff_WF[leg][0];
+                impact_y += legs_pos_ref_->FootBodyEff_WF[leg][1];
+            }
+
+            impact_x = legs_pos_ref_->StateSpaceModel->EstimatedState[2] + impact_x / legs_pos_ref_->TimelyWeight;
+            impact_y = legs_pos_ref_->StateSpaceModel->EstimatedState[5] + impact_y / legs_pos_ref_->TimelyWeight;
+
+            const double impact_norm = std::hypot(impact_x, impact_y);
+            const double tilt_factor = std::fmax(((std::fabs(StateSpaceModel->EstimatedState[0]) + std::fabs(StateSpaceModel->EstimatedState[3])) * 180.0 / M_PI - 10.0) / 10.0 + 1.0, 1.0);
+            const double angle_error = std::atan2(std::fabs(vy_mean * impact_x - vx_mean * impact_y), -vx_mean * impact_x - vy_mean * impact_y);
+            const double angle_allow = std::fmin(30.0 + 5.0 * std::fabs(StateSpaceModel->EstimatedState[8]), 75.0) * M_PI / 180.0;
+
+            // 速度大于0.2m/s，且加速度大于机器狗倾斜度因子*2.5m/s/s的基准，且加速度方向与速度方向夹角小于允许角度(30~75度)，且距离上次碰撞时间大于3s，则判定为碰撞
+            if (velocity_norm >= 0.2 && velocity_xy > 1e-9 && impact_norm > 2.5 * tilt_factor && angle_error <= angle_allow && Time - last_collision_time >= 3.0)
+            {
+                const double cy = std::cos(StateSpaceModel->EstimatedState[6]);
+                const double sy = std::sin(StateSpaceModel->EstimatedState[6]);
+                const double contact_x = -(cy * impact_x + sy * impact_y) / impact_norm;
+                const double contact_y = -(-sy * impact_x + cy * impact_y) / impact_norm;
+                const double face_cos = std::cos(15.0 * M_PI / 180.0); // 15度以内，视为面碰撞而非腿碰撞
+
+                if (contact_x >= face_cos)
+                    CollisionDetectedLeg = 2;
+                else if (contact_y <= -face_cos)
+                    CollisionDetectedLeg = 4;
+                else if (contact_x <= -face_cos)
+                    CollisionDetectedLeg = 6;
+                else if (contact_y >= face_cos)
+                    CollisionDetectedLeg = 8;
+                else if (contact_x >= 0.0 && contact_y >= 0.0)
+                    CollisionDetectedLeg = 1;
+                else if (contact_x >= 0.0)
+                    CollisionDetectedLeg = 3;
+                else if (contact_y < 0.0)
+                    CollisionDetectedLeg = 5;
+                else
+                    CollisionDetectedLeg = 7;
+
+                last_collision_time = Time;
+            }
+        }
+        else if(history_count < 0 || history_count > 10)
+            history_count = 0;
+        else
+            history_count++;
+
+        vx_mean += (legs_pos_ref_->StateSpaceModel->EstimatedState[1] - velocity_history[history_index][0]) * 0.1;
+        vy_mean += (legs_pos_ref_->StateSpaceModel->EstimatedState[4] - velocity_history[history_index][1]) * 0.1;
+        yaw_velocity_mean += (StateSpaceModel->EstimatedState[7] - velocity_history[history_index][2]) * 0.1;
+
+        velocity_history[history_index][0] = legs_pos_ref_->StateSpaceModel->EstimatedState[1];
+        velocity_history[history_index][1] = legs_pos_ref_->StateSpaceModel->EstimatedState[4];
+        velocity_history[history_index][2] = StateSpaceModel->EstimatedState[7];
+
+        history_index = (history_index + 1) % 10;
     }
 }

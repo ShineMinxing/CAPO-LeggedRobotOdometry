@@ -8,6 +8,8 @@ namespace DataFusion
   {
     public:
 
+    using Sensors::StateSpaceModel;
+
     SensorLegsPos(EstimatorPortN* StateSpaceModel_):Sensors(StateSpaceModel_)
     {
       for(int i=0;i<MAX_CONTACT_CHAIN;i++)
@@ -34,11 +36,11 @@ namespace DataFusion
     void SensorDataHandle(double* Message, double Time)  override;
     void LoadedWeightCheck(double* Message, double Time);
 
-    bool FootfallPositionRecordIsInitiated[MAX_CONTACT_CHAIN] = {0}, FootIsOnGround[MAX_CONTACT_CHAIN] = {0}, FootWasOnGround[MAX_CONTACT_CHAIN] = {0}, FootLastMotion[MAX_CONTACT_CHAIN] = {0}, FootLanding[MAX_CONTACT_CHAIN] = {0}, CalculateWeightEnable = false;
+    bool FootfallPositionRecordIsInitiated[MAX_CONTACT_CHAIN] = {0}, FootIsOnGround[MAX_CONTACT_CHAIN] = {0}, FootWasOnGround[MAX_CONTACT_CHAIN] = {0}, FootLastMotion[MAX_CONTACT_CHAIN] = {0}, FootLanding[MAX_CONTACT_CHAIN] = {0}, CalculateWeightEnable = true;
     double FootBodyEff_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyTorq_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyPos_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyVel_WF[MAX_CONTACT_CHAIN][3] = {0}, FootfallPositionRecord[MAX_CONTACT_CHAIN][4] = {0}, FootfallAveragePosition[3] = {0}, FootfallProbability[MAX_CONTACT_CHAIN] = {0}, WheelAnglePrev[MAX_CONTACT_CHAIN] = {0};
 
     double FootEffortThreshold = -80.0, Environement_Height_Scope = 0.08, Data_Fading_Time = 1200.0, WheelPositionMismatchThreshold = 0.075;
-    double MinimumWeight = 25.0, TimelyWeight = 25.0;
+    double MinimumWeight = 15.0, TimelyWeight = 15.0;
 
     bool   SlopeModeEnable = true;
     double SlopeModeTimeThreshold  = 1.0;
@@ -115,7 +117,7 @@ namespace DataFusion
       }
     }
 
-    void UseMP()
+    void UseMP_A()
     {
       for (int i = 0; i < MAX_CONTACT_CHAIN; ++i) LegChains_[i] = LegTFChain();
 
@@ -260,7 +262,57 @@ namespace DataFusion
       }
     }
     
-    void UseMW()
+    void UseMW_D()
+    {
+      for (int i = 0; i < MAX_CONTACT_CHAIN; ++i) LegChains_[i] = LegTFChain();
+
+      Environement_Height_Scope = 0.05;
+      FootEffortThreshold = -50.0;
+
+      // FL
+      LegChains_[0].node_num = 3;
+      LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.2860,  0.0690,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,  0.1288,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      // FR
+      LegChains_[1].node_num = 3;
+      LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.2860, -0.0690,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000, -0.1288,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      // RL
+      LegChains_[2].node_num = 3;
+      LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.2860,  0.0690,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,  0.1288,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      // RR
+      LegChains_[3].node_num = 3;
+      LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.2860, -0.0690,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000, -0.1288,  0.0,  0.0, 0.0, 0.0);
+      LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      
+      for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
+      {
+        LegChains_[LegNumber].wheel_radius = 0.195 / 2.0;
+
+        LegChains_[LegNumber].wheel_q_index = LegChains_[LegNumber].node[0].q_index + 3;
+        LegChains_[LegNumber].wheel_dq_index = LegChains_[LegNumber].node[0].dq_index + 3;
+
+        LegChains_[LegNumber].pitch_joint_num = 2;
+        LegChains_[LegNumber].pitch_q_index[0] = LegChains_[LegNumber].node[1].q_index;
+        LegChains_[LegNumber].pitch_q_index[1] = LegChains_[LegNumber].node[2].q_index;
+        LegChains_[LegNumber].pitch_dq_index[0] = LegChains_[LegNumber].node[1].dq_index;
+        LegChains_[LegNumber].pitch_dq_index[1] = LegChains_[LegNumber].node[2].dq_index;
+
+        LegChains_[LegNumber].roll_joint_num = 1;
+        LegChains_[LegNumber].roll_q_index[0] = LegChains_[LegNumber].node[0].q_index;
+      }
+    }
+
+    void UseMW_B()
     {
       for (int i = 0; i < MAX_CONTACT_CHAIN; ++i) LegChains_[i] = LegTFChain();
 
@@ -477,6 +529,8 @@ namespace DataFusion
   {
     public:
 
+    using Sensors::StateSpaceModel;
+
     SensorLegsOri(EstimatorPortN* StateSpaceModel_):Sensors(StateSpaceModel_){}
     void SensorDataHandle(double* Message, double Time) override;
 
@@ -484,6 +538,14 @@ namespace DataFusion
     double legori_init_weight = 0.001, legori_time_weight = 1000.0, legori_current_weight = 0.001, legori_correct = 0;
 
     bool JointsRPYEnable = false;
+    bool JointsRPYAccEnable = true;
+
+    bool CollisionDetectEnable = false;
+    int CollisionDetectedLeg = 0;
+    void CollisionDetect(double Time);
+
+    double yaw_correct;
+    void CorrectYawByFootfall(double* Message, double Time) ;
 
     protected:
 
