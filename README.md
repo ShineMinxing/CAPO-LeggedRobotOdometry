@@ -1,5 +1,7 @@
 # CAPO-LeggedRobotOdometry 🦾  [![License](https://img.shields.io/badge/License-See%20LICENSE-blue.svg)](LICENSE)
 
+Chinese version readme.md is in contributting.md.
+
 **CAPO-LeggedRobotOdometry** is a **pure proprioceptive odometry library** for legged robots, implemented with a **portable C++ estimator core** that depends only on **IMU and joint motor data**.
 
 The core estimation logic is implemented in **`FusionEstimator/fusion_estimator.h`**. The file **`fusion_estimator_node.cpp`** provides a **ROS 2 wrapper** around this estimator, while the **`Matlab/`** folder contains examples for **MATLAB + C++ mixed compilation** and offline evaluation.
