@@ -316,6 +316,55 @@ namespace DataFusion
         
         if (array_3x3_inverse(JJT, JJT_inv) == _ERROR_NO_ERROR)
             array_3x3_multiply_vector(JJT_inv, Jtau, FootBodyEff_WF[LegNumber]);
+        
+        for (int target = 1; target <= 2 && target < joint_num; ++target)
+        {
+            Jtau[0] = Jtau[1] = Jtau[2] = 0.0;
+
+            for (int r = 0; r < 3; ++r)
+                for (int c = 0; c < 3; ++c)
+                    JJT[r][c] = 0.0;
+
+            for (int j = 0; j < target; ++j)
+            {
+                const double rx = joint_org[target][0] - joint_org[j][0];
+                const double ry = joint_org[target][1] - joint_org[j][1];
+                const double rz = joint_org[target][2] - joint_org[j][2];
+
+                const double J0 = joint_axis[j][1] * rz - joint_axis[j][2] * ry;
+                const double J1 = joint_axis[j][2] * rx - joint_axis[j][0] * rz;
+                const double J2 = joint_axis[j][0] * ry - joint_axis[j][1] * rx;
+
+                Jtau[0] += J0 * joint_tau[j];
+                Jtau[1] += J1 * joint_tau[j];
+                Jtau[2] += J2 * joint_tau[j];
+
+                JJT[0][0] += J0 * J0;
+                JJT[0][1] += J0 * J1;
+                JJT[0][2] += J0 * J2;
+                JJT[1][1] += J1 * J1;
+                JJT[1][2] += J1 * J2;
+                JJT[2][2] += J2 * J2;
+            }
+
+            JJT[1][0] = JJT[0][1];
+            JJT[2][0] = JJT[0][2];
+            JJT[2][1] = JJT[1][2];
+
+            JJT[0][0] += 1e-4;
+            JJT[1][1] += 1e-4;
+            JJT[2][2] += 1e-4;
+
+            for (int i = 0; i < 3; ++i)
+                StateSpaceModel->Double_Par[60 + LegNumber * 9 + (target - 1) * 3 + i] = 0.0;
+
+            if (array_3x3_inverse(JJT, JJT_inv) == _ERROR_NO_ERROR)
+                array_3x3_multiply_vector(JJT_inv, Jtau, &StateSpaceModel->Double_Par[60 + LegNumber * 9 + (target - 1) * 3]);
+        }
+
+        for (int i = 0; i < 3; ++i)
+            StateSpaceModel->Double_Par[60 + LegNumber * 9 + 6 + i] = FootBodyEff_WF[LegNumber][i];
+
 
         FootBodyTorq_WF[LegNumber][0] = FootBodyPos_WF[LegNumber][1] * FootBodyEff_WF[LegNumber][2] - FootBodyPos_WF[LegNumber][2] * FootBodyEff_WF[LegNumber][1];
         FootBodyTorq_WF[LegNumber][1] = FootBodyPos_WF[LegNumber][2] * FootBodyEff_WF[LegNumber][0] - FootBodyPos_WF[LegNumber][0] * FootBodyEff_WF[LegNumber][2];
@@ -949,6 +998,5 @@ namespace DataFusion
 
         history_index = (history_index + 1) % 10;
 
-        legs_pos_ref_->StateSpaceModel->Double_Par[60] = CollisionDetectedLeg;
     }
 }
