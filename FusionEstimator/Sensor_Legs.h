@@ -24,23 +24,27 @@ namespace DataFusion
     }
         
     ~SensorLegsPos() override = default;
+    void SensorDataHandle(double* Message, double Time)  override;
     
+
     int ContactChainNum = 4;
     static constexpr int MAX_CONTACT_CHAIN = 4;
     static constexpr int MAX_CHAIN_NODE = 12;
     static constexpr int MAX_PITCH_SUM_JOINT = 8;
 
+
     bool JointsXYZEnable = true;
     bool JointsXYZVelocityEnable = true;
 
-    void SensorDataHandle(double* Message, double Time)  override;
-    void LoadedWeightCheck(double* Message, double Time);
-
-    bool FootfallPositionRecordIsInitiated[MAX_CONTACT_CHAIN] = {0}, FootIsOnGround[MAX_CONTACT_CHAIN] = {0}, FootWasOnGround[MAX_CONTACT_CHAIN] = {0}, FootLastMotion[MAX_CONTACT_CHAIN] = {0}, FootLanding[MAX_CONTACT_CHAIN] = {0}, CalculateWeightEnable = true;
+    double FootEffortThreshold = -80.0, Environement_Height_Scope = 0.08, Data_Fading_Time = 1200.0, WheelPositionMismatchThreshold = 0.1;
+    bool FootfallPositionRecordIsInitiated[MAX_CONTACT_CHAIN] = {0}, FootIsOnGround[MAX_CONTACT_CHAIN] = {0}, FootWasOnGround[MAX_CONTACT_CHAIN] = {0}, FootLastMotion[MAX_CONTACT_CHAIN] = {0}, FootLanding[MAX_CONTACT_CHAIN] = {0};
     double FootBodyEff_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyTorq_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyPos_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyVel_WF[MAX_CONTACT_CHAIN][3] = {0}, FootfallPositionRecord[MAX_CONTACT_CHAIN][4] = {0}, FootfallAveragePosition[3] = {0}, FootfallProbability[MAX_CONTACT_CHAIN] = {0}, WheelAnglePrev[MAX_CONTACT_CHAIN] = {0};
 
-    double FootEffortThreshold = -80.0, Environement_Height_Scope = 0.08, Data_Fading_Time = 1200.0, WheelPositionMismatchThreshold = 0.075;
-    double MinimumWeight = 15.0, TimelyWeight = 15.0;
+    void Joint2HipFoot(double *Message, int LegNumber);
+    void FootFallPositionRecord(double *Message);
+    void ClusterFootfallHeight(int LegNumber, double move_dir_z);
+    void EstimateGroundPitchAlongHeading(double& move_dir_x, double& move_dir_y, double& move_dir_z);
+
 
     bool   SlopeModeEnable = true;
     double SlopeModeTimeThreshold  = 1.0;
@@ -48,6 +52,15 @@ namespace DataFusion
     double SlopeModeStepHeightThreshold  = 0.03;
     double SlopeModeFootForceAccept  = 0.5;
 
+
+    bool CalculateWeightEnable = true;
+    double MinimumWeight = 40.0, TimelyWeight = 40.0;
+    void LoadedWeightCheck(double* Message, double Time);
+
+    bool GravityCompensateEnable = false;
+    double MotorGravityCompensate[MAX_CONTACT_CHAIN][MAX_CHAIN_NODE] = {0};
+    void GravityCompensate();
+    
     // ---------------- Go2 point-foot preset ----------------
     // ---------------- Go2 点足参数预设 ----------------
     /*
@@ -266,33 +279,36 @@ namespace DataFusion
     {
       for (int i = 0; i < MAX_CONTACT_CHAIN; ++i) LegChains_[i] = LegTFChain();
 
-      Environement_Height_Scope = 0.05;
-      FootEffortThreshold = -50.0;
+      Environement_Height_Scope = 0.07;
+      FootEffortThreshold = -70.0;
 
       // FL
       LegChains_[0].node_num = 3;
-      LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.2860,  0.0690,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,  0.1288,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
-      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[0].node[0] = TFNode(-1, 0, 16, 32, TF_AXIS_X, 0.2860, 0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, -0.04818797, -0.015150707, 0.00010019288);
+      LegChains_[0].node[1] = TFNode(0, 1, 17, 33, TF_AXIS_Y, 0.0, 0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, -0.060945317, -0.036514208);
+      LegChains_[0].node[2] = TFNode(1, 2, 18, 34, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, 0.017075214, -0.20362850);
+      LegChains_[0].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, 0.056276127, 0.0);
+
       // FR
       LegChains_[1].node_num = 3;
-      LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.2860, -0.0690,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000, -0.1288,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
-      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[1].node[0] = TFNode(-1, 4, 20, 36, TF_AXIS_X, 0.2860, -0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, -0.04818797, 0.015150707, 0.00010019288);
+      LegChains_[1].node[1] = TFNode(0, 5, 21, 37, TF_AXIS_Y, 0.0, -0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, 0.060945317, -0.036514208);
+      LegChains_[1].node[2] = TFNode(1, 6, 22, 38, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, -0.017075214, -0.20362850);
+      LegChains_[1].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, -0.056276127, 0.0);
+
       // RL
       LegChains_[2].node_num = 3;
-      LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.2860,  0.0690,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,  0.1288,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
-      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[2].node[0] = TFNode(-1, 8, 24, 40, TF_AXIS_X, -0.2860, 0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, 0.04818797, -0.015150707, 0.00010019288);
+      LegChains_[2].node[1] = TFNode(0, 9, 25, 41, TF_AXIS_Y, 0.0, 0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, -0.060945317, -0.036514208);
+      LegChains_[2].node[2] = TFNode(1, 10, 26, 42, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, 0.017075214, -0.20362850);
+      LegChains_[2].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, 0.056276127, 0.0);
+
       // RR
       LegChains_[3].node_num = 3;
-      LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.2860, -0.0690,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000, -0.1288,  0.0,  0.0, 0.0, 0.0);
-      LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,  0.0000, -0.26, 0.0, 0.0, 0.0);
-      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0,  0.0000, -0.26, 0.0, 0.0, 0.0);
+      LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.2860, -0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, 0.04818797, 0.015150707, 0.00010019288);
+      LegChains_[3].node[1] = TFNode(0, 13, 29, 45, TF_AXIS_Y, 0.0, -0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, 0.060945317, -0.036514208);
+      LegChains_[3].node[2] = TFNode(1, 14, 30, 46, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, -0.017075214, -0.20362850);
+      LegChains_[3].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, -0.056276127, 0.0);
       
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -316,7 +332,7 @@ namespace DataFusion
     {
       for (int i = 0; i < MAX_CONTACT_CHAIN; ++i) LegChains_[i] = LegTFChain();
 
-      Environement_Height_Scope = 0.05;
+      Environement_Height_Scope = 0.04;
       FootEffortThreshold = -85.0;
 
       LegChains_[0].node_num = 3;
@@ -457,15 +473,24 @@ namespace DataFusion
       // 从父节点到当前节点的固定安装旋转
       double q_fix[4] = {1.0, 0.0, 0.0, 0.0};
 
+      // mass for this motor, expressed in kg
+      // 该电机独立负载的总质量，单位 kg
+      double mass = 0.0;
+
+      // material point for this motor
+      // 该电机独立负载的质心位置
+      double com[3] = {0.0, 0.0, 0.0};
+
       TFNode() = default;
 
-      TFNode(int parent_, int q_index_, int dq_index_, int tau_index_, int axis_, double x, double y, double z, double roll, double pitch, double yaw)
-          : parent(parent_), q_index(q_index_), dq_index(dq_index_), tau_index(tau_index_), axis(axis_)
+      TFNode(int parent_, int q_index_, int dq_index_, int tau_index_, int axis_, double x, double y, double z, double roll, double pitch, double yaw, double mass_ = 0.0, double com_x = 0.0, double com_y = 0.0, double com_z = 0.0)
+          : parent(parent_), q_index(q_index_), dq_index(dq_index_), tau_index(tau_index_), axis(axis_), mass(mass_)
       {
-        t[0] = x; t[1] = y; t[2] = z;
-        double array_EulerZYX[3] = {roll, pitch, yaw};
-        array_eulerZYX_to_quaternion(array_EulerZYX, q_fix);
-        array_quaternion_normalize(q_fix, q_fix);
+          t[0] = x; t[1] = y; t[2] = z;
+          com[0] = com_x; com[1] = com_y; com[2] = com_z;
+          double array_EulerZYX[3] = {roll, pitch, yaw};
+          array_eulerZYX_to_quaternion(array_EulerZYX, q_fix);
+          array_quaternion_normalize(q_fix, q_fix);
       }
     };
 
@@ -519,10 +544,6 @@ namespace DataFusion
     };
     
     LegTFChain LegChains_[MAX_CONTACT_CHAIN];
-
-    void Joint2HipFoot(double *Message, int LegNumber);
-    void FootFallPositionRecord(double *Message);
-    void EstimateGroundPitchAlongHeading(double& move_dir_x, double& move_dir_y, double& move_dir_z);
   };
 
   class SensorLegsOri : public Sensors

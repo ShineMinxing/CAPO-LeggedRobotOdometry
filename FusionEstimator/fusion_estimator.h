@@ -143,6 +143,7 @@ enum ConfigIndex {
 
     IndexSlopeEstimationEnable = 17,
     IndexCollisionDetectEnable = 18,
+    IndexGravityCompensateEnable = 19,
 };
 
 class FusionEstimatorCore
@@ -210,6 +211,7 @@ public:
             
             legs_pos->SlopeModeEnable           = status[IndexSlopeEstimationEnable];
             legs_ori->CollisionDetectEnable     = status[IndexCollisionDetectEnable];
+            legs_pos->GravityCompensateEnable   = status[IndexGravityCompensateEnable];
         }
         else if (status[IndexInOrOut] == 2){
             status[IndexInOrOut] = 0;
@@ -236,7 +238,7 @@ public:
             
             status[IndexSlopeEstimationEnable]       = legs_pos->SlopeModeEnable;
             status[IndexCollisionDetectEnable]       = legs_ori->CollisionDetectEnable;
-
+            status[IndexGravityCompensateEnable]     = legs_pos->GravityCompensateEnable;
         }
         else if (status[IndexInOrOut] == 3){
             status[IndexInOrOut] = 0;
@@ -401,7 +403,6 @@ public:
                 if(legs_ori->CollisionDetectEnable)
                     legs_ori->CollisionDetect(UsedTimestamp);
             }
-
         }
 
         odom.XPos = static_cast<float>(sensors[0]->EstimatedState[0]);
