@@ -1,8 +1,8 @@
 clear all;clc;
 cd(fileparts(mfilename('fullpath')));
 
-CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
-% CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
+% CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
+CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
 
 used_lines = 300000;
 
@@ -10,7 +10,7 @@ data = readmatrix(CSV_PATH);
 N = size(data, 1);
 
 fid = fopen(CSV_PATH,'r');
-C = textscan(fid, '%s%*[^\n]', N+1, 'Delimiter',',');  % 多读1行，包含表头
+C = textscan(fid, '%s%*[^\n]', N+1, 'Delimiter',',');  % ¶à¶Á1ÐÐ£¬°üº¬±íÍ·
 fclose(fid);
 time_strs = string(C{1}(2:end));
 pat = '\.(\d{1,3})(?!\d)';
@@ -28,13 +28,13 @@ stride    = 13;
 motor_num = 16;
 imu0      = base0 + motor_num * stride;
 
-q16   = data(:, base0 + (0:15) * stride + 6);  % q16：16个电机的q值
-dq16  = data(:, base0 + (0:15) * stride + 7);  % dq16：16个电机的dq值
-tau16 = data(:, base0 + (0:15) * stride + 8);  % tau16：16个电机的tau值
+q16   = data(:, base0 + (0:15) * stride + 6);  % q16£º16¸öµç»úµÄqÖµ
+dq16  = data(:, base0 + (0:15) * stride + 7);  % dq16£º16¸öµç»úµÄdqÖµ
+tau16 = data(:, base0 + (0:15) * stride + 8);  % tau16£º16¸öµç»úµÄtauÖµ
 
-acc  = data(:, imu0 + (1:3));   % 加速度数据
-gyro = data(:, imu0 + (4:6));   % 陀螺仪数据
-quat = data(:, imu0 + (7:10));  % 四元数数据
+acc  = data(:, imu0 + (1:3));   % ¼ÓËÙ¶ÈÊý¾Ý
+gyro = data(:, imu0 + (4:6));   % ÍÓÂÝÒÇÊý¾Ý
+quat = data(:, imu0 + (7:10));  % ËÄÔªÊýÊý¾Ý
 
 fusion_estimator_mex('reset');
 status_ = zeros(100,1,'double');
@@ -46,7 +46,6 @@ status_(1:7) = 1;
 status_ = fusion_estimator_mex('status',status_);
 
 odom_log = nan(N, 27);
-status_record = zeros(length(status_), N); 
 
 range = 1:1:N;
 tic
@@ -59,23 +58,14 @@ for k = range
     ts_ms = ts_ms_all(k);
 
     out = fusion_estimator_mex('step', ts_ms, q16(k,:), dq16(k,:), tau16(k,:), acc(k,:), gyro(k,:), quat(k,:));
-    
-    status_(1) = 4;
-    status_ = fusion_estimator_mex('status',status_);
-    status_record(:,k) = status_;
 
-    odom_log(k,:) = [double(ts_ms)/1000, out.XPos, out.YPos, out.ZPos, ...
-        out.XVel, out.YVel, out.ZVel, ...
-        out.XAcc, out.YAcc, out.ZAcc, ...
-        out.RollRad, out.PitchRad, out.YawRad, ...
-        out.RollVel, out.PitchVel, out.YawVel,...
-        out.RollAcc, out.PitchAcc, out.YawAcc,...
-        out.FootfallAverageX, out.FootfallAverageY, out.FootfallAverageYaw, out.LoadedWeight,...
-        out.FLFootLanded, out.FRFootLanded, out.RLFootLanded, out.RRFootLanded];
+    odom_log(k,:) = [double(ts_ms)/1000, double(out.PositionXYZ([1,4,7])), double(out.PositionXYZ([2,5,8])), double(out.PositionXYZ([3,6,9])),...
+        double(out.OrientationRPY([1,4,7])), double(out.OrientationRPY([2,5,8])), double(out.OrientationRPY([3,6,9])),...
+        double(out.FootfallAverage(:).'), double(out.DogWeight), double(out.FootLandedProbability(:).')];
 
     if mod(k,1000)==0
         fprintf('[%d] t=%.1f x=%.1f y=%.1f z=%.1f r=%.2f p=%.2f y=%.2f\n', ...
-            k, odom_log(k,1), odom_log(k,2), odom_log(k,3), odom_log(k,4), odom_log(k,5), odom_log(k,6), odom_log(k,7));
+            k, odom_log(k,1), odom_log(k,2), odom_log(k,3), odom_log(k,4), odom_log(k,11), odom_log(k,12), odom_log(k,13));
     end
 end
 toc
@@ -139,12 +129,12 @@ title('Orientation','FontSize',WordSize);
 subplot(1,1,1,'Parent',tab_vel_acc);
 hold on; grid on;
 
-% velocity 实线
+% velocity ÊµÏß
 plot(t_plot, odom_log(range,5),'r-');
 plot(t_plot, odom_log(range,6),'g-');
 plot(t_plot, odom_log(range,7),'b-');
 
-% acceleration 虚线
+% acceleration ÐéÏß
 plot(t_plot, odom_log(range,8), '--', 'Color', [1 0.3 0.3]);
 plot(t_plot, odom_log(range,9), '--', 'Color', [0.3 1 0.3]);
 plot(t_plot, odom_log(range,10), '--', 'Color', [0.3 0.3 1]);
@@ -162,12 +152,12 @@ title('Velocity and Acceleration','FontSize',WordSize);
 subplot(1,1,1,'Parent',tab_ang);
 hold on; grid on;
 
-% angular velocity 实线
+% angular velocity ÊµÏß
 plot(t_plot, odom_log(range,14),'r-');
 plot(t_plot, odom_log(range,15),'g-');
 plot(t_plot, odom_log(range,16),'b-');
 
-% angular acceleration 虚线
+% angular acceleration ÐéÏß
 plot(t_plot, odom_log(range,17)/5,'r--');
 plot(t_plot, odom_log(range,18)/5,'g--');
 plot(t_plot, odom_log(range,19)/5,'b--');

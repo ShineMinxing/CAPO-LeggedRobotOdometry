@@ -136,10 +136,8 @@ The table below lists the main parameters used by the ROS2 node. See `config.yam
 | `leg_pos_enable` | `true` | enable leg-position kinematics |
 | `leg_vel_enable` | `true` | enable leg-velocity kinematics |
 | `leg_ori_enable` | `false` | enable kinematics-based yaw correction |
-| `leg_ori_init_weight` | `0.001` | initial weight of orientation correction |
-| `leg_ori_time_wight` | `1000.0` | time-related growth weight for orientation correction |
-| `leg_velcke_enable` | `false` | enable IKVel-CKF / CAPO-CKE |
-| `foot_force_threshold` | `20.0` | contact threshold |
+| `contact_sensor_threshold` | `20.0` | threshold for converting contact-sensor values into contact-related motor torque |
+| `foot_force_threshold` | `-30.0` | foot equivalent-force threshold used for contact detection |
 | `min_stair_height` | `0.08` | minimum stair-height hypothesis used by the estimator |
 
 > Notes:
@@ -175,9 +173,9 @@ ros2 run fusion_estimator fusion_estimator_node
 │   • SMX/Go2IMU       sensor_msgs/Imu
 │   • SMX/Go2Joint     std_msgs/Float64MultiArray
 │       layout:
-│         data[0..11]   = 12 joint positions q
-│         data[12..23]  = 12 joint velocities dq
-│         data[24..27]  = 12 joint torque tau or contact-related values
+│         data[0..15]   = 16 motor positions q
+│         data[16..31]  = 16 motor velocities dq
+│         data[32..47]  = 16 estimated motor torques tau
 │   • SMX/SportCmd     std_msgs/Float64MultiArray
 │       reset example:
 │         data[0] == 25140000  → estimator reset

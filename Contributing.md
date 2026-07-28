@@ -132,10 +132,8 @@ CAPO-LeggedRobotOdometry/
 | `leg_pos_enable` | `true` | 是否启用腿部位置运动学 |
 | `leg_vel_enable` | `true` | 是否启用腿部速度运动学 |
 | `leg_ori_enable` | `false` | 是否启用基于运动学的航向修正 |
-| `leg_ori_init_weight` | `0.001` | 姿态修正初始权重 |
-| `leg_ori_time_wight` | `1000.0` | 姿态修正随时间增长的权重 |
-| `leg_velcke_enable` | `false` | 是否启用 IKVel-CKF / CAPO-CKE |
-| `foot_force_threshold` | `20.0` | 触地阈值 |
+| `contact_sensor_threshold` | `20.0` | 触地传感器阈值 |
+| `foot_force_threshold` | `-30.0` | 电机力矩计算的足压力阈值 |
 | `min_stair_height` | `0.08` | 最小台阶高度假设 |
 
 > 说明：
@@ -170,9 +168,9 @@ ros2 run fusion_estimator fusion_estimator_node
 │   • SMX/Go2IMU       sensor_msgs/Imu
 │   • SMX/Go2Joint     std_msgs/Float64MultiArray
 │       数据布局：
-│         data[0..11]   = 12 个关节位置 q
-│         data[12..23]  = 12 个关节速度 dq
-│         data[24..27]  = 12 个关节力矩 tau / 足端接触力
+│         data[0..15]   = 16 个关节位置 q
+│         data[16..31]  = 16 个关节速度 dq
+│         data[32..47]  = 16 个关节力矩 tau / 足端接触力
 │   • SMX/SportCmd     std_msgs/Float64MultiArray
 │       复位示例：
 │         data[0] == 25140000  → 复位估计器
