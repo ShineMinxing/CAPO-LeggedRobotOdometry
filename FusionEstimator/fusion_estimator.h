@@ -7,105 +7,130 @@ Proprioceptive legged odometry overview
 
 Purpose:
 作用：
-    This estimator computes robot odometry using only IMU and joint motor related data.
-    It provides body position, velocity, acceleration, attitude, angular velocity,
-    angular acceleration, support-state related statistics, and optional support-center
-    / slope related quantities.
+This estimator computes robot odometry using IMU and joint motor data.
+It estimates body position, velocity, acceleration, orientation, angular velocity,
+angular acceleration, foot contact probability, support-center position,
+loaded weight, joint positions, joint equivalent forces, collision direction,
+and optional joint gravity compensation.
 
-    本估计器仅依赖 IMU 和关节电机相关数据完成机器人的本体里程计估计。
-    它输出机体的位置、速度、加速度、姿态角、角速度、角加速度，
-    以及与支撑状态相关的统计量，并可选输出支撑中心 / 坡度相关量。
+```
+本估计器使用 IMU 和关节电机数据计算机器人本体里程计。
+它估计机体位置、速度、加速度、姿态角、角速度、角加速度、
+足端触地概率、支撑中心位置、负载重量、关节位置、关节等效力、
+碰撞方向，以及可选的关节重力补偿力矩。
+```
 
 Main entry:
 主要入口：
-    1. Initialization example:
-       初始化示例：
-           #include "fusion_estimator.h"
-           auto Robot_Estimation = CreateRobot_Estimation();
+1. Initialization:
+初始化：
+#include "fusion_estimator.h"
+auto Robot_Estimation = CreateRobot_Estimation();
 
-    2. Runtime estimation example:
-       运行时估计示例：
-           #include "LowlevelState.h"
-           LowlevelState st{};
-           Odometer odom = Robot_Estimation.fusion_estimator(st);
+```
+2. Runtime estimation:
+   运行时估计：
+       #include "LowlevelState.h"
+       LowlevelState st{};
+       Odometer odom = Robot_Estimation.fusion_estimator(st);
 
-    3. Runtime status/config interface:
-       运行时状态/参数接口：
-           double status[100] = {0};
-           Robot_Estimation.fusion_estimator_status(status);
+3. Runtime configuration:
+   运行时配置：
+       double status[100] = {0};
+       Robot_Estimation.fusion_estimator_status(status);
+```
 
 Configuration index meaning:
 配置索引说明：
 
-    IndexInOrOut = 0
-    IndexStatusOK = 1
+```
+IndexInOrOut = 0
+IndexStatusOK = 1
 
-    IndexIMUAccEnable = 2
-    IndexIMUQuaternionEnable = 3
-    IndexIMUGyroEnable = 4
+IndexIMUAccEnable = 2
+IndexIMUQuaternionEnable = 3
+IndexIMUGyroEnable = 4
 
-    IndexJointsXYZEnable = 5
-    IndexJointsXYZVelEnable = 6
-    IndexJointsRPYEnable = 7
-    IndexJointsRPYAccEnable = 8
+IndexJointsXYZEnable = 5
+IndexJointsXYZVelEnable = 6
+IndexJointsRPYEnable = 7
+IndexJointsRPYAccEnable = 8
 
-    IndexSlopeModeTimeThreshold = 8
-    IndexSlopeModeAngleThreshold = 9
-    IndexLegFootForceThreshold = 10
-    IndexLegMinStairHeight = 11
-    IndexStairHeightFogotten = 12
+IndexSlopeModeTimeThreshold = 10
+IndexSlopeModeAngleThreshold = 11
+IndexLegFootForceThreshold = 12
+IndexLegMinStairHeight = 13
+IndexStairHeightFogotten = 14
 
-    IndexLegOrientationInitialWeight = 13
-    IndexLegOrientationTimeWeight = 14
+IndexLegOrientationInitialWeight = 15
+IndexLegOrientationTimeWeight = 16
 
-    IndexSlopeEstimationEnable = 15
+IndexSlopeEstimationEnable = 17
+IndexCollisionDetectEnable = 18
+IndexGravityCompensateEnable = 19
+```
 
 Runtime control:
 运行控制：
-    status[IndexInOrOut] == 1:
-        write/modify estimator parameters
-        写入/修改估计器参数
+status[IndexInOrOut] == 1:
+    write estimator parameters
+    写入估计器参数
+status[IndexInOrOut] == 2:
+    read estimator parameters
+    读取估计器参数
+status[IndexInOrOut] == 3:
+    reset estimated X/Y position and realign yaw correction
+    将估计的 X/Y 位置清零，并重新对齐 yaw 修正量
 
-    status[IndexInOrOut] == 2:
-        read current estimator parameters and internal state
-        读取当前估计器参数和部分内部状态
-
-    status[IndexInOrOut] == 3:
-        reset estimated position to zero and re-align yaw correction
-        将估计位置清零，并重新对齐 yaw 修正项
-
-    status[IndexInOrOut] == 4:
-        switch to MP kinematic preset
-        切换到 MP 运动学参数
-
-    status[IndexInOrOut] == 5:
-        switch to LW kinematic preset
-        切换到 LW 运动学参数
-
-    status[IndexInOrOut] == 6:
-        switch to MW kinematic preset
-        切换到 MW 运动学参数
-
-    status[IndexInOrOut] == 99:
-        switch to Go2P kinematic preset
-        切换到 Go2P 运动学参数
+status[IndexInOrOut] == 98:
+    使用 Go2 轮足参数
+status[IndexInOrOut] == 99:
+    使用 Go2 点足参数
+status[IndexInOrOut] == 121:
+    使用 SP 参数
+status[IndexInOrOut] == 140:
+    使用 MW_D 参数
+status[IndexInOrOut] == 141:
+    使用 MP_A 参数
+status[IndexInOrOut] == 142:
+    使用 MW_B 参数
+status[IndexInOrOut] == 160:
+    使用 LW 参数
+```
 
 Algorithm pipeline:
 算法流程：
-    1. IMU quaternion / gyroscope update attitude and angular rate related states.
-       使用 IMU 四元数 / 角速度更新姿态与角速度相关状态。
-    2. Joint motor states are converted to foot positions and velocities in body frame.
-       将关节电机状态转换为机体系下的足端位置和速度。
-    3. Foot positions / velocities are transformed into world-related support constraints.
-       将足端位置 / 速度转化为世界系支撑约束。
-    4. Contact / support state is inferred from joint-force-related information.
-       基于关节力相关信息推断触地 / 支撑状态。
-    5. When support constraints are available, body position and velocity are corrected.
-       当支撑约束有效时，对机体位置和速度进行校正。
-    6. Optional leg-based yaw correction is applied when enabled.
-       当启用时，使用腿部几何关系对 yaw 进行辅助校正。
-    7. Optional slope estimation is applied when enough support geometry is available.
-       当支撑几何充分时，可选进行坡度估计。
+1. IMU acceleration updates body acceleration states.
+IMU 加速度更新机体加速度状态。
+
+```
+2. IMU quaternion and gyroscope update orientation and angular velocity states.
+   IMU 四元数和角速度更新姿态与角速度状态。
+
+3. Joint angles, velocities, and torques are converted into world-frame
+   joint positions, foot velocity, and joint equivalent forces.
+   根据关节角度、角速度和力矩计算世界系关节位置、
+   足端速度和关节等效力。
+
+4. Foot contact probability and support state are estimated from foot force.
+   根据足端受力估计触地概率和支撑状态。
+
+5. Supporting-foot positions and velocities update body position,
+   velocity, and acceleration states.
+   使用支撑足位置和速度更新机体位置、速度和加速度状态。
+
+6. Wheel-foot models compensate wheel rolling, shank motion,
+   lateral tire motion, and ground slope.
+   轮足模型补偿轮子滚动、小腿摆动、轮胎侧向运动和地面坡度。
+
+7. Foot geometry optionally corrects yaw when all feet are on the ground.
+   全部足端着地时，可使用足端几何关系修正 yaw。
+
+8. Foot forces optionally estimate loaded weight, angular acceleration,
+   collision direction, and joint gravity compensation.
+   足端受力可用于估计负载重量、角加速度、碰撞方向和关节重力补偿。
+```
+
 */
 
 #include <memory>
@@ -253,11 +278,6 @@ public:
             legs_pos->FootfallPositionRecordIsInitiated[2] = false;
             legs_pos->FootfallPositionRecordIsInitiated[3] = false;
         }
-        else if (status[IndexInOrOut] == 4){
-            for(int i = 0; i < 100; i++){
-                status[i] = sensors[0]->Double_Par[i];
-            }
-        }
         else if (status[IndexInOrOut] == 98){
             status[IndexInOrOut] = 0;
             status[IndexStatusOK] = status[IndexStatusOK] + 98;
@@ -274,7 +294,7 @@ public:
         }
         else if (status[IndexInOrOut] == 121){
             status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 120;
+            status[IndexStatusOK] = status[IndexStatusOK] + 121;
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
             legs_pos->UseSP();
@@ -309,9 +329,9 @@ public:
         }
     }
 
-    Odometer fusion_estimator(const LowlevelState& st)
+    Proprioception fusion_estimator(const LowlevelState& st)
     {
-        Odometer odom;
+        Proprioception proprio;
         
         double q[4] = {
             static_cast<double>(st.imu.quaternion[0]),
@@ -325,7 +345,7 @@ public:
         if (!IsQuaternionOK||!imu_gyro->IMUQuaternionEnable)
         {
             if(!legs_ori->JointsRPYEnable)
-                return odom;
+                return proprio;
             else
             {
                 q[0] = 1;
@@ -404,43 +424,35 @@ public:
                     legs_ori->CollisionDetect(UsedTimestamp);
             }
         }
+        
+        for(int i = 0; i < 9; ++i)
+        {
+            proprio.PositionXYZ[i] = static_cast<float>(sensors[0]->EstimatedState[i]);
+            proprio.OrientationRPY[i] = static_cast<float>(sensors[1]->EstimatedState[i]);
+        }
 
-        odom.XPos = static_cast<float>(sensors[0]->EstimatedState[0]);
-        odom.YPos = static_cast<float>(sensors[0]->EstimatedState[3]);
-        odom.ZPos = static_cast<float>(sensors[0]->EstimatedState[6]);
+        for(int i = 0; i < 3; ++i)
+            proprio.FootfallAverage[i] = static_cast<float>(legs_pos->FootfallAveragePosition[i]);
 
-        odom.XVel = static_cast<float>(sensors[0]->EstimatedState[1]);
-        odom.YVel = static_cast<float>(sensors[0]->EstimatedState[4]);
-        odom.ZVel = static_cast<float>(sensors[0]->EstimatedState[7]);
+        for(int LegNumber = 0; LegNumber < legs_pos->ContactChainNum; ++LegNumber)
+        {
+            proprio.FootLandedProbability[LegNumber] = static_cast<float>(legs_pos->FootfallProbability[LegNumber]);
 
-        odom.XAcc = static_cast<float>(sensors[0]->EstimatedState[2]);
-        odom.YAcc = static_cast<float>(sensors[0]->EstimatedState[5]);
-        odom.ZAcc = static_cast<float>(sensors[0]->EstimatedState[8]);
+            for(int n = 0; n <= DataFusion::SensorLegsPos::FootNodeIndex; ++n)
+                for(int i = 0; i < 3; ++i)
+                {
+                    proprio.JointsBodyWFPosition[LegNumber][n][i] = static_cast<float>(legs_pos->JointsBodyWFPosition[LegNumber][n][i]);
+                    proprio.JointsBodyWFEffort[LegNumber][n][i] = static_cast<float>(legs_pos->JointsBodyWFEffort[LegNumber][n][i]);
+                }
+                
+            for(int motor = 0; motor < 3; ++motor)
+                proprio.MotorGravityCompensate[LegNumber][motor] = static_cast<float>(legs_pos->MotorGravityCompensate[LegNumber][motor]);
+        }
 
-        odom.RollRad  = static_cast<float>(sensors[1]->EstimatedState[0]);
-        odom.PitchRad = static_cast<float>(sensors[1]->EstimatedState[3]);
-        odom.YawRad   = static_cast<float>(sensors[1]->EstimatedState[6]);
+        proprio.DogWeight = static_cast<float>(legs_pos->TimelyWeight);
+        proprio.LegCollisionDetect = legs_ori->CollisionDetectedLeg;
 
-        odom.RollVel  = static_cast<float>(sensors[1]->EstimatedState[1]);
-        odom.PitchVel = static_cast<float>(sensors[1]->EstimatedState[4]);
-        odom.YawVel   = static_cast<float>(sensors[1]->EstimatedState[7]);
-
-        odom.RollAcc  = static_cast<float>(sensors[1]->EstimatedState[2]);
-        odom.PitchAcc = static_cast<float>(sensors[1]->EstimatedState[5]);
-        odom.YawAcc   = static_cast<float>(sensors[1]->EstimatedState[8]);
-
-        odom.FootfallAverageX   = static_cast<float>(legs_pos->FootfallAveragePosition[0]);
-        odom.FootfallAverageY   = static_cast<float>(legs_pos->FootfallAveragePosition[1]);
-        odom.FootfallAverageYaw = static_cast<float>(legs_pos->FootfallAveragePosition[2]);
-
-        odom.LoadedWeight = static_cast<float>(legs_pos->TimelyWeight);
-
-        odom.FLFootLanded = static_cast<float>(legs_pos->FootfallProbability[0]);
-        odom.FRFootLanded = static_cast<float>(legs_pos->FootfallProbability[1]);
-        odom.RLFootLanded = static_cast<float>(legs_pos->FootfallProbability[2]);
-        odom.RRFootLanded = static_cast<float>(legs_pos->FootfallProbability[3]);
-
-        return odom;
+        return proprio;
     }
 
 private:

@@ -147,7 +147,6 @@ public:
 private:
     FusionEstimatorCore fe_;  // 核心融合器（已封装好）
     LowlevelState st_;        // “静态”输入缓存（节点生命周期内一直保留）
-    Odometer odom_;           // “静态”输出缓存（仅 joint 回调更新）
 
     nav_msgs::msg::Odometry SMXFE_odom;
     nav_msgs::msg::Odometry SMXFE_odom_2D;
@@ -225,38 +224,38 @@ private:
 
         // ---------------- Estimation is triggered only by the joint callback ----------------
         // ---------------- 估计更新只在 joint 回调中触发 ----------------
-        odom_ = fe_.fusion_estimator(st_);
+        st_.proprioception = fe_.fusion_estimator(st_);
 
-        SMXFE_odom.pose.pose.position.x = odom_.XPos;
-        SMXFE_odom.pose.pose.position.y = odom_.YPos;
-        SMXFE_odom.pose.pose.position.z = odom_.ZPos;
+        SMXFE_odom.pose.pose.position.x = st_.proprioception.PositionXYZ[0];
+        SMXFE_odom.pose.pose.position.y = st_.proprioception.PositionXYZ[3];
+        SMXFE_odom.pose.pose.position.z = st_.proprioception.PositionXYZ[6];
 
-        SMXFE_odom.twist.twist.linear.x = odom_.XVel;
-        SMXFE_odom.twist.twist.linear.y = odom_.YVel;
-        SMXFE_odom.twist.twist.linear.z = odom_.ZVel;
+        SMXFE_odom.twist.twist.linear.x = st_.proprioception.PositionXYZ[1];
+        SMXFE_odom.twist.twist.linear.y = st_.proprioception.PositionXYZ[4];
+        SMXFE_odom.twist.twist.linear.z = st_.proprioception.PositionXYZ[7];
 
         tf2::Quaternion q;
-        q.setRPY(odom_.RollRad, odom_.PitchRad, odom_.YawRad);
+        q.setRPY(st_.proprioception.OrientationRPY[0], st_.proprioception.OrientationRPY[3], st_.proprioception.OrientationRPY[6]);
         SMXFE_odom.pose.pose.orientation = tf2::toMsg(q);
 
-        SMXFE_odom.twist.twist.angular.x = odom_.RollVel;
-        SMXFE_odom.twist.twist.angular.y = odom_.PitchVel;
-        SMXFE_odom.twist.twist.angular.z = odom_.YawVel;
+        SMXFE_odom.twist.twist.angular.x = st_.proprioception.OrientationRPY[1];
+        SMXFE_odom.twist.twist.angular.y = st_.proprioception.OrientationRPY[4];
+        SMXFE_odom.twist.twist.angular.z = st_.proprioception.OrientationRPY[7];
 
-        SMXFE_odom_2D.pose.pose.position.x = odom_.XPos;
-        SMXFE_odom_2D.pose.pose.position.y = odom_.YPos;
+        SMXFE_odom_2D.pose.pose.position.x = st_.proprioception.PositionXYZ[0];
+        SMXFE_odom_2D.pose.pose.position.y = st_.proprioception.PositionXYZ[3];
         SMXFE_odom_2D.pose.pose.position.z = 0;
 
-        SMXFE_odom_2D.twist.twist.linear.x = odom_.XVel;
-        SMXFE_odom_2D.twist.twist.linear.y = odom_.YVel;
+        SMXFE_odom_2D.twist.twist.linear.x = st_.proprioception.PositionXYZ[1];
+        SMXFE_odom_2D.twist.twist.linear.y = st_.proprioception.PositionXYZ[4];
         SMXFE_odom_2D.twist.twist.linear.z = 0;
 
-        q.setRPY(0, 0, odom_.YawRad);
+        q.setRPY(0, 0, st_.proprioception.OrientationRPY[6]);
         SMXFE_odom_2D.pose.pose.orientation = tf2::toMsg(q);
 
-        SMXFE_odom_2D.twist.twist.angular.x = odom_.RollVel;
-        SMXFE_odom_2D.twist.twist.angular.y = odom_.PitchVel;
-        SMXFE_odom_2D.twist.twist.angular.z = odom_.YawVel;
+        SMXFE_odom_2D.twist.twist.angular.x = st_.proprioception.OrientationRPY[1];
+        SMXFE_odom_2D.twist.twist.angular.y = st_.proprioception.OrientationRPY[4];
+        SMXFE_odom_2D.twist.twist.angular.z = st_.proprioception.OrientationRPY[7];
 
         msg_received[1] = 1;
         Msg_Publish();
@@ -264,10 +263,6 @@ private:
 
     void BodyJointMarkerPublish()
     {
-        double status[100] = {0};
-        status[IndexInOrOut] = 4;
-        fe_.fusion_estimator_status(status);
-
         visualization_msgs::msg::MarkerArray markers;
 
         const char* leg_names[4]  = {"FL", "FR", "RL", "RR"};
@@ -292,11 +287,9 @@ private:
 
             for (int node = 0; node < 4; ++node)
             {
-                const int pos_id = leg * 12 + node * 3;
-
-                const double x = status[pos_id + 0] + odom_.XPos;
-                const double y = status[pos_id + 1] + odom_.YPos;
-                const double z = status[pos_id + 2] + odom_.ZPos;
+                const double x = st_.proprioception.JointsBodyWFPosition[leg][node][0] + st_.proprioception.PositionXYZ[0];
+                const double y = st_.proprioception.JointsBodyWFPosition[leg][node][1] + st_.proprioception.PositionXYZ[3];
+                const double z = st_.proprioception.JointsBodyWFPosition[leg][node][2] + st_.proprioception.PositionXYZ[6];
 
                 visualization_msgs::msg::Marker marker;
 
@@ -353,18 +346,16 @@ private:
             }
 
             markers.markers.push_back(line);
-            const int foot_pos_id = leg * 12 + 3 * 3;
-            const int force_id = 48 + leg * 3;
 
             geometry_msgs::msg::Point p0, p1;
 
-            p0.x = status[foot_pos_id + 0] + odom_.XPos;
-            p0.y = status[foot_pos_id + 1] + odom_.YPos;
-            p0.z = status[foot_pos_id + 2] + odom_.ZPos;
+            p0.x = st_.proprioception.JointsBodyWFPosition[leg][3][0] + st_.proprioception.PositionXYZ[0];
+            p0.y = st_.proprioception.JointsBodyWFPosition[leg][3][1] + st_.proprioception.PositionXYZ[3];
+            p0.z = st_.proprioception.JointsBodyWFPosition[leg][3][2] + st_.proprioception.PositionXYZ[6];
 
-            p1.x = p0.x - status[force_id + 0] / 1000.0;
-            p1.y = p0.y - status[force_id + 1] / 1000.0;
-            p1.z = p0.z - status[force_id + 2] / 1000.0;
+            p1.x = p0.x - st_.proprioception.JointsBodyWFEffort[leg][3][0] / 1000.0;
+            p1.y = p0.y - st_.proprioception.JointsBodyWFEffort[leg][3][1] / 1000.0;
+            p1.z = p0.z - st_.proprioception.JointsBodyWFEffort[leg][3][2] / 1000.0;
 
             visualization_msgs::msg::Marker force_arrow;
             force_arrow.header.stamp = SMXFE_odom.header.stamp;

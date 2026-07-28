@@ -48,28 +48,21 @@ struct IMU
     }
 };
 
-struct Odometer
+struct Proprioception
 {
-    float XPos, YPos, ZPos;
-    float XVel, YVel, ZVel;
-    float XAcc, YAcc, ZAcc;
-    float RollRad, PitchRad, YawRad;
-    float RollVel, PitchVel, YawVel;
-    float RollAcc, PitchAcc, YawAcc;
-    float FootfallAverageX, FootfallAverageY, FootfallAverageYaw;
-    float FLFootLanded, FRFootLanded, RLFootLanded, RRFootLanded;
-    float LoadedWeight;
+    float PositionXYZ[9]; // 0-2: X Position Velocity Acceleration, 3-5: Y Position Velocity Acceleration, 6-8: Z Position Velocity Acceleration
+    float OrientationRPY[9]; // 0-2: Roll Orientation Velocity Acceleration, 3-5: Pitch Orientation Velocity Acceleration, 6-8: Yaw Orientation Velocity Acceleration
+    float FootfallAverage[3]; // 0-2: Footfall Average X, Footfall Average Y, Footfall Average Yaw
+    float FootLandedProbability[4]; // FL, FR, RL, RR Foot Landed Probability
+    float DogWeight;
+    int LegCollisionDetect; // 0: No collision, 1: front, 2: front left, 3: left, 4: back left, 5: back, 6: back right, 7: right, 8: front right
+    float JointsBodyWFPosition[4][4][3]; // MOTOR_NUM joints, each with X, Y, Z position relative to body in world frame
+    float JointsBodyWFEffort[4][4][3]; // MOTOR_NUM joints, each with X, Y, Z position  relative to body in world frame
+    float MotorGravityCompensate[4][3]; // FL, FR, RL, RR; Hip, Thigh, Calf gravity compensation torque
 
-    Odometer()
-        : XPos(0.0f), YPos(0.0f), ZPos(0.0f),
-          XVel(0.0f), YVel(0.0f), ZVel(0.0f),
-          XAcc(0.0f), YAcc(0.0f), ZAcc(0.0f),
-          RollRad(0.0f), PitchRad(0.0f), YawRad(0.0f),
-          RollVel(0.0f), PitchVel(0.0f), YawVel(0.0f),
-          RollAcc(0.0f), PitchAcc(0.0f), YawAcc(0.0f),
-          FootfallAverageX(0.0f), FootfallAverageY(0.0f), FootfallAverageYaw(0.0f),
-          FLFootLanded(0.0f), FRFootLanded(0.0f), RLFootLanded(0.0f), RRFootLanded(0.0f),
-          LoadedWeight(0.0f)
+    Proprioception()
+        : PositionXYZ{}, OrientationRPY{}, FootfallAverage{}, FootLandedProbability{},
+        DogWeight(0.0f), LegCollisionDetect(0), JointsBodyWFPosition{}, JointsBodyWFEffort{}
     {}
 };
 
@@ -77,8 +70,8 @@ struct Odometer
 struct LowlevelState
 {
     IMU imu;            // imu
-    Odometer odometer;  // 里程计
     MotorState motorState[MOTOR_NUM]; // 电机状态
+    Proprioception proprioception; // 本体感知
 };
 
 #endif /* __CONTROL_FRAME_LOWLEVELSTATE_H__ */

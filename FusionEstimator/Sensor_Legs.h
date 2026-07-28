@@ -31,6 +31,7 @@ namespace DataFusion
     static constexpr int MAX_CONTACT_CHAIN = 4;
     static constexpr int MAX_CHAIN_NODE = 12;
     static constexpr int MAX_PITCH_SUM_JOINT = 8;
+    static constexpr int FootNodeIndex = 3;
 
 
     bool JointsXYZEnable = true;
@@ -38,20 +39,21 @@ namespace DataFusion
 
     double FootEffortThreshold = -80.0, Environement_Height_Scope = 0.08, Data_Fading_Time = 1200.0, WheelPositionMismatchThreshold = 0.1;
     bool FootfallPositionRecordIsInitiated[MAX_CONTACT_CHAIN] = {0}, FootIsOnGround[MAX_CONTACT_CHAIN] = {0}, FootWasOnGround[MAX_CONTACT_CHAIN] = {0}, FootLastMotion[MAX_CONTACT_CHAIN] = {0}, FootLanding[MAX_CONTACT_CHAIN] = {0};
-    double FootBodyEff_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyTorq_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyPos_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyVel_WF[MAX_CONTACT_CHAIN][3] = {0}, FootfallPositionRecord[MAX_CONTACT_CHAIN][4] = {0}, FootfallAveragePosition[3] = {0}, FootfallProbability[MAX_CONTACT_CHAIN] = {0}, WheelAnglePrev[MAX_CONTACT_CHAIN] = {0};
+
+    double JointsBodyWFPosition[MAX_CONTACT_CHAIN][MAX_CHAIN_NODE][3] = {0}, JointsBodyWFEffort[MAX_CONTACT_CHAIN][MAX_CHAIN_NODE][3] = {0};
+
+    double FootBodyVel_WF[MAX_CONTACT_CHAIN][3] = {0}, FootBodyTorq_WF[MAX_CONTACT_CHAIN][3] = {0}, FootfallPositionRecord[MAX_CONTACT_CHAIN][4] = {0}, FootfallAveragePosition[3] = {0}, FootfallProbability[MAX_CONTACT_CHAIN] = {0}, WheelAnglePrev[MAX_CONTACT_CHAIN] = {0};
 
     void Joint2HipFoot(double *Message, int LegNumber);
     void FootFallPositionRecord(double *Message);
     void ClusterFootfallHeight(int LegNumber, double move_dir_z);
     void EstimateGroundPitchAlongHeading(double& move_dir_x, double& move_dir_y, double& move_dir_z);
 
-
     bool   SlopeModeEnable = true;
     double SlopeModeTimeThreshold  = 1.0;
     double SlopeModeAngleThreshold = 5.0 / 180.0 * M_PI;
     double SlopeModeStepHeightThreshold  = 0.03;
     double SlopeModeFootForceAccept  = 0.5;
-
 
     bool CalculateWeightEnable = true;
     double MinimumWeight = 40.0, TimelyWeight = 40.0;
@@ -68,22 +70,22 @@ namespace DataFusion
     *   node[0] : body -> q1 origin, with q1 mounted on this node
     *   node[1] : q1   -> q2 origin, with q2 mounted on this node
     *   node[2] : q2   -> q3 origin, with q3 mounted on this node
-    *   ee      : q3   -> fixed foot contact point
+    *   node[3] : q3   -> fixed foot contact point
     *
     * For point-foot models:
     * 1) wheel_radius = 0
-    * 2) ee.z stores the full effective distal length
+    * 2) node[3].t[2] stores the full effective distal length
     * 3) no wheel compensation is used
     *
     * 本预设描述一个三自由度点足腿：
     *   node[0] : body -> q1 髋关节电机原点，并在该节点挂 q1
     *   node[1] : q1   -> q2 大腿关节电机原点，并在该节点挂 q2
     *   node[2] : q2   -> q3 小腿关节电机原点，并在该节点挂 q3
-    *   ee      : q3   -> 固定足端接触点
+    *   node[3] : q3   -> 固定足端接触点
     *
     * 对于点足模型：
     * 1）wheel_radius = 0
-    * 2）ee.z 直接表示末端总有效长度
+    * 2）node[3].t[2] 直接表示末端总有效长度
     * 3）不进行轮滚动补偿
     */
     void UseGo2P()
@@ -99,30 +101,30 @@ namespace DataFusion
       // q1->q2  Y = +0.0955
       // q2->q3  hip lenght = 0.213
       // q3->foot shank and foot length = 0.235 = 0.213 + 0.022
-      LegChains_[0].node_num = 3;
+      LegChains_[0].node_num = 4;
       // SensorDataHandle(double* Message, double Time)----Message[0 16 32]分别是一号电机的角度、角速度、力矩
       LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.1934,  0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,  0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
+      LegChains_[0].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
       // FR
-      LegChains_[1].node_num = 3;
+      LegChains_[1].node_num = 4;
       LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.1934, -0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000, -0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
+      LegChains_[1].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
       // RL
-      LegChains_[2].node_num = 3;
+      LegChains_[2].node_num = 4;
       LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.1934,  0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,  0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
+      LegChains_[2].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
       // RR
-      LegChains_[3].node_num = 3;
+      LegChains_[3].node_num = 4;
       LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.1934, -0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000, -0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
+      LegChains_[3].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2350, 0.0, 0.0, 0.0);
       
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -137,29 +139,29 @@ namespace DataFusion
       Environement_Height_Scope = 0.08;
       FootEffortThreshold = -80.0;
 
-      LegChains_[0].node_num = 3;
+      LegChains_[0].node_num = 4;
       LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.2878,  0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,  0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
+      LegChains_[0].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
 
-      LegChains_[1].node_num = 3;
+      LegChains_[1].node_num = 4;
       LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.2878, -0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000, -0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
+      LegChains_[1].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
 
-      LegChains_[2].node_num = 3;
+      LegChains_[2].node_num = 4;
       LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.2878,  0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,  0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
+      LegChains_[2].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
 
-      LegChains_[3].node_num = 3;
+      LegChains_[3].node_num = 4;
       LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.2878, -0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000, -0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
+      LegChains_[3].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2900, 0.0, 0.0, 0.0);
       
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -174,29 +176,29 @@ namespace DataFusion
       Environement_Height_Scope = 0.08;
       FootEffortThreshold = -40.0;
 
-      LegChains_[0].node_num = 3;
+      LegChains_[0].node_num = 4;
       LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.22495,   0.06800,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,    0.13145,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,    0.00000, -0.2200, 0.0, 0.0, 0.0);
-      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
+      LegChains_[0].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
 
-      LegChains_[1].node_num = 3;
+      LegChains_[1].node_num = 4;
       LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.22495,  -0.06800,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000,   -0.13145,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,    0.00000, -0.2200, 0.0, 0.0, 0.0);
-      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
+      LegChains_[1].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
 
-      LegChains_[2].node_num = 3;
+      LegChains_[2].node_num = 4;
       LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.22495,   0.06800,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,    0.13145,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,    0.00000, -0.2200, 0.0, 0.0, 0.0);
-      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
+      LegChains_[2].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
 
-      LegChains_[3].node_num = 3;
+      LegChains_[3].node_num = 4;
       LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.22495,  -0.06800,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000,   -0.13145,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,    0.00000, -0.2200, 0.0, 0.0, 0.0);
-      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
+      LegChains_[3].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.00000, -0.2640, 0.0, 0.0, 0.0);
       
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -232,29 +234,29 @@ namespace DataFusion
       FootEffortThreshold = -125.0;
 
       // FL
-      LegChains_[0].node_num = 3;
+      LegChains_[0].node_num = 4;
       LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.3405,  0.1000, -0.0666, 0.0, 0.0, 0.0);
       LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,  0.1522,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,  0.0000, -0.2700, 0.0, 0.0, 0.0);
-      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
+      LegChains_[0].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
       // FR
-      LegChains_[1].node_num = 3;
+      LegChains_[1].node_num = 4;
       LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.3405, -0.1000, -0.0666, 0.0, 0.0, 0.0);
       LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000, -0.1522,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,  0.0000, -0.2700, 0.0, 0.0, 0.0);
-      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
+      LegChains_[1].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
       // RL
-      LegChains_[2].node_num = 3;
+      LegChains_[2].node_num = 4;
       LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.3405,  0.1000, -0.0666, 0.0, 0.0, 0.0);
       LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,  0.1522,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,  0.0000, -0.2700, 0.0, 0.0, 0.0);
-      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
+      LegChains_[2].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
       // RR
-      LegChains_[3].node_num = 3;
+      LegChains_[3].node_num = 4;
       LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.3405, -0.1000, -0.0666, 0.0, 0.0, 0.0);
       LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000, -0.1522,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,  0.0000, -0.2700, 0.0, 0.0, 0.0);
-      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
+      LegChains_[3].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.3500, 0.0, 0.0, 0.0);
 
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -283,32 +285,32 @@ namespace DataFusion
       FootEffortThreshold = -70.0;
 
       // FL
-      LegChains_[0].node_num = 3;
+      LegChains_[0].node_num = 4;
       LegChains_[0].node[0] = TFNode(-1, 0, 16, 32, TF_AXIS_X, 0.2860, 0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, -0.04818797, -0.015150707, 0.00010019288);
       LegChains_[0].node[1] = TFNode(0, 1, 17, 33, TF_AXIS_Y, 0.0, 0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, -0.060945317, -0.036514208);
       LegChains_[0].node[2] = TFNode(1, 2, 18, 34, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, 0.017075214, -0.20362850);
-      LegChains_[0].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, 0.056276127, 0.0);
+      LegChains_[0].node[3] = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, 0.056276127, 0.0);
 
       // FR
-      LegChains_[1].node_num = 3;
+      LegChains_[1].node_num = 4;
       LegChains_[1].node[0] = TFNode(-1, 4, 20, 36, TF_AXIS_X, 0.2860, -0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, -0.04818797, 0.015150707, 0.00010019288);
       LegChains_[1].node[1] = TFNode(0, 5, 21, 37, TF_AXIS_Y, 0.0, -0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, 0.060945317, -0.036514208);
       LegChains_[1].node[2] = TFNode(1, 6, 22, 38, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, -0.017075214, -0.20362850);
-      LegChains_[1].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, -0.056276127, 0.0);
+      LegChains_[1].node[3] = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, -0.056276127, 0.0);
 
       // RL
-      LegChains_[2].node_num = 3;
+      LegChains_[2].node_num = 4;
       LegChains_[2].node[0] = TFNode(-1, 8, 24, 40, TF_AXIS_X, -0.2860, 0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, 0.04818797, -0.015150707, 0.00010019288);
       LegChains_[2].node[1] = TFNode(0, 9, 25, 41, TF_AXIS_Y, 0.0, 0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, -0.060945317, -0.036514208);
       LegChains_[2].node[2] = TFNode(1, 10, 26, 42, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, 0.017075214, -0.20362850);
-      LegChains_[2].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, 0.056276127, 0.0);
+      LegChains_[2].node[3] = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, 0.056276127, 0.0);
 
       // RR
-      LegChains_[3].node_num = 3;
+      LegChains_[3].node_num = 4;
       LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.2860, -0.0690, 0.0, 0.0, 0.0, 0.0, 0.37806745, 0.04818797, 0.015150707, 0.00010019288);
       LegChains_[3].node[1] = TFNode(0, 13, 29, 45, TF_AXIS_Y, 0.0, -0.1288, 0.0, 0.0, 0.0, 0.0, 3.9865247, -0.0044367981, 0.060945317, -0.036514208);
       LegChains_[3].node[2] = TFNode(1, 14, 30, 46, TF_AXIS_Y, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.9551257, 0.00043824695, -0.017075214, -0.20362850);
-      LegChains_[3].ee = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, -0.056276127, 0.0);
+      LegChains_[3].node[3] = TFNode(2, -1, -1, -1, TF_AXIS_FIXED, 0.0, 0.0, -0.26, 0.0, 0.0, 0.0, 1.1647075, 0.0, -0.056276127, 0.0);
       
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -335,29 +337,29 @@ namespace DataFusion
       Environement_Height_Scope = 0.04;
       FootEffortThreshold = -85.0;
 
-      LegChains_[0].node_num = 3;
+      LegChains_[0].node_num = 4;
       LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.2878,  0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,  0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
+      LegChains_[0].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
 
-      LegChains_[1].node_num = 3;
+      LegChains_[1].node_num = 4;
       LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.2878, -0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000, -0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
+      LegChains_[1].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
 
-      LegChains_[2].node_num = 3;
+      LegChains_[2].node_num = 4;
       LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.2878,  0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,  0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
+      LegChains_[2].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
 
-      LegChains_[3].node_num = 3;
+      LegChains_[3].node_num = 4;
       LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.2878, -0.0700,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000, -0.1709,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,  0.0000, -0.2600, 0.0, 0.0, 0.0);
-      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
+      LegChains_[3].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2600, 0.0, 0.0, 0.0);
             
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -389,29 +391,29 @@ namespace DataFusion
       SlopeModeFootForceAccept  = 0.2;
 
       // FL
-      LegChains_[0].node_num = 3;
+      LegChains_[0].node_num = 4;
       LegChains_[0].node[0] = TFNode(-1,  0, 16, 32, TF_AXIS_X,  0.1934,  0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[1] = TFNode( 0,  1, 17, 33, TF_AXIS_Y,  0.0000,  0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[0].node[2] = TFNode( 1,  2, 18, 34, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[0].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
+      LegChains_[0].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
       // FR
-      LegChains_[1].node_num = 3;
+      LegChains_[1].node_num = 4;
       LegChains_[1].node[0] = TFNode(-1,  4, 20, 36, TF_AXIS_X,  0.1934, -0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[1] = TFNode( 0,  5, 21, 37, TF_AXIS_Y,  0.0000, -0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[1].node[2] = TFNode( 1,  6, 22, 38, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[1].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
+      LegChains_[1].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
       // RL
-      LegChains_[2].node_num = 3;
+      LegChains_[2].node_num = 4;
       LegChains_[2].node[0] = TFNode(-1,  8, 24, 40, TF_AXIS_X, -0.1934,  0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[1] = TFNode( 0,  9, 25, 41, TF_AXIS_Y,  0.0000,  0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[2].node[2] = TFNode( 1, 10, 26, 42, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[2].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
+      LegChains_[2].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
       // RR
-      LegChains_[3].node_num = 3;
+      LegChains_[3].node_num = 4;
       LegChains_[3].node[0] = TFNode(-1, 12, 28, 44, TF_AXIS_X, -0.1934, -0.0465,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[1] = TFNode( 0, 13, 29, 45, TF_AXIS_Y,  0.0000, -0.0955,  0.0000, 0.0, 0.0, 0.0);
       LegChains_[3].node[2] = TFNode( 1, 14, 30, 46, TF_AXIS_Y,  0.0000,  0.0000, -0.2130, 0.0, 0.0, 0.0);
-      LegChains_[3].ee      = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
+      LegChains_[3].node[3] = TFNode( 2, -1, -1, -1, TF_AXIS_FIXED, 0.0000, 0.0000, -0.2130, 0.0, 0.0, 0.0);
 
       for (int LegNumber = 0; LegNumber < ContactChainNum; ++LegNumber)
       {
@@ -506,10 +508,6 @@ namespace DataFusion
       // 从机体到末端的 TF 节点序列
       TFNode node[MAX_CHAIN_NODE];
 
-      // fixed transform from the last joint node to the end-effector / contact point
-      // 从最后一个关节节点到末端 / 接触点的固定变换
-      TFNode ee;
-
       // wheel radius for wheel-foot models
       // 轮足模型的轮半径
       double wheel_radius = 0.0;
@@ -556,7 +554,7 @@ namespace DataFusion
     void SensorDataHandle(double* Message, double Time) override;
 
     inline void SetLegsPosRef(class SensorLegsPos* ref){ legs_pos_ref_ = ref; }
-    double legori_init_weight = 0.001, legori_time_weight = 1000.0, legori_current_weight = 0.001, legori_correct = 0;
+    double legori_init_weight = 0.001, legori_time_weight = 1000.0, legori_current_weight = 0.001;
 
     bool JointsRPYEnable = false;
     bool JointsRPYAccEnable = true;
@@ -565,7 +563,7 @@ namespace DataFusion
     int CollisionDetectedLeg = 0;
     void CollisionDetect(double Time);
 
-    double yaw_correct;
+    double yaw_correct  = 0.0;
     void CorrectYawByFootfall(double* Message, double Time) ;
 
     protected:
