@@ -59,7 +59,7 @@ namespace DataFusion
     double MinimumWeight = 40.0, TimelyWeight = 40.0;
     void LoadedWeightCheck(double* Message, double Time);
 
-    bool GravityCompensateEnable = false;
+    bool GravityCompensateEnable = true;
     double MotorGravityCompensate[MAX_CONTACT_CHAIN][MAX_CHAIN_NODE] = {0};
     void GravityCompensate();
     
@@ -559,7 +559,7 @@ namespace DataFusion
     bool JointsRPYEnable = false;
     bool JointsRPYAccEnable = true;
 
-    bool CollisionDetectEnable = false;
+    bool CollisionDetectEnable = true;
     int CollisionDetectedLeg = 0;
     void CollisionDetect(double Time);
 

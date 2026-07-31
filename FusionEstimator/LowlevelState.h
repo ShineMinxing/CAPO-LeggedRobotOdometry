@@ -69,9 +69,9 @@ struct Proprioception
 
 struct LowlevelState
 {
-    IMU imu;            // imu
+    IMU imu;                          // imu
     MotorState motorState[MOTOR_NUM]; // 电机状态
-    Proprioception proprioception; // 本体感知
+    Proprioception proprioception;    // 本体感知
 };
 
 #endif /* __CONTROL_FRAME_LOWLEVELSTATE_H__ */
