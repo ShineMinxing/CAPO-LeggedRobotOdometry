@@ -1,8 +1,10 @@
 clear all;clc;
 cd(fileparts(mfilename('fullpath')));
 
+% CSV_PATH = 'Data/GO2Flat'; DogMode = 98;
+CSV_PATH = 'Data/GO2Stairs'; DogMode = 98;
 % CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
-CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
+% CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
 
 used_lines = 300000;
 
@@ -28,13 +30,13 @@ stride    = 13;
 motor_num = 16;
 imu0      = base0 + motor_num * stride;
 
-q16   = data(:, base0 + (0:15) * stride + 6);  % q16£º16¸öµç»úµÄqÖµ
-dq16  = data(:, base0 + (0:15) * stride + 7);  % dq16£º16¸öµç»úµÄdqÖµ
-tau16 = data(:, base0 + (0:15) * stride + 8);  % tau16£º16¸öµç»úµÄtauÖµ
+q16   = data(:, base0 + (0:15) * stride + 6);  % q16 with 16 motors angle
+dq16  = data(:, base0 + (0:15) * stride + 7);  % dq16 with 16 motors angular velocity
+tau16 = data(:, base0 + (0:15) * stride + 8);  % tau16 with 16 motors torque
 
-acc  = data(:, imu0 + (1:3));   % ¼ÓËÙ¶ÈÊý¾Ý
-gyro = data(:, imu0 + (4:6));   % ÍÓÂÝÒÇÊý¾Ý
-quat = data(:, imu0 + (7:10));  % ËÄÔªÊýÊý¾Ý
+acc  = data(:, imu0 + (1:3));   % Acceleration data from imu
+gyro = data(:, imu0 + (4:6));   % Gyroscope data from imu
+quat = data(:, imu0 + (7:10));  % Quaternion data from imu
 
 fusion_estimator_mex('reset');
 status_ = zeros(100,1,'double');
