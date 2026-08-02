@@ -64,6 +64,7 @@ void StateSpaceModel_Go2_PredictionFunction(double *In_State, double *Out_Predic
 }
 
 EXPORT void StateSpaceModel_Go2_EstimatorPort(double *In_Observation, double In_Observation_Timestamp, struct EstimatorPortN *estimator) {
+  estimator->ObservationTimestamp = In_Observation_Timestamp;
 	for (int i = 0; i < estimator->Nz; i++)
 	{
 		estimator->CurrentObservation[i] = In_Observation[i];
@@ -116,7 +117,7 @@ EXPORT void StateSpaceModel_Go2_Initialization(EstimatorPortN *estimator)
     #define StateSpaceModel_Go2_NX 9
     #define StateSpaceModel_Go2_NZ 9
     #define StateSpaceModel_Go2_PredictStep 0
-    #define StateSpaceModel_Go2_Interval 0.004
+    #define StateSpaceModel_Go2_Interval 0.005
     #define StateSpaceModel_Go2_PredictTime 0
     #define StateSpaceModel_Go2_ObservationTimestamp 0
 

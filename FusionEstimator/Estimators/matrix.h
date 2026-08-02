@@ -155,6 +155,7 @@ double matrix_detsubF1(double array[5][5], int n);
 double matrix_detsubF2(double array[5][5], int i, int n);
 // Matrix inversion
 ERROR_ID matrix_inverse(_IN MATRIX* A, _OUT MATRIX* invA);
+ERROR_ID matrix_inverse_noalloc(_IN MATRIX* A, _OUT MATRIX* invA, _IN_OUT MATRIX* L, _IN_OUT MATRIX* U, _IN_OUT MATRIX* y);
 // Matrix transpose
 ERROR_ID matrix_transpose(_IN MATRIX* A, _OUT MATRIX* transposeA);
 // Matrix trace

@@ -1051,16 +1051,15 @@ ERROR_ID lup_decomposition(_IN MATRIX* A, _OUT MATRIX* L, _OUT MATRIX* U, _OUT M
     return errorID;
 }
 // LUP分解解矩阵方程AX=B，其中A(n*n)，B(n*m)，X(n*m)待求矩阵（写到矩阵B）
-ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRIX* B)
+// LUP分解解矩阵方程的内部核心，不申请和释放内存
+static ERROR_ID solve_matrix_equation_by_lup_decomposition_core(_IN MATRIX* A, _IN_OUT MATRIX* B, _IN_OUT MATRIX* L, _IN_OUT MATRIX* U, _IN_OUT MATRIX* y)
 {
     INDEX i, j, k, index, s, t;
     INTEGER n, m;
     REAL sum, maxvalue, temp;
-    MATRIX* L = NULL, *U = NULL, *y = NULL;
     ERROR_ID errorID = _ERROR_NO_ERROR;
-    STACKS S;
 
-    if (A == NULL || B == NULL || A->p == NULL || B->p == NULL)
+    if (A == NULL || B == NULL || L == NULL || U == NULL || y == NULL || A->p == NULL || B->p == NULL || L->p == NULL || U->p == NULL || y->p == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
         printf("矩阵运算错误代码：%u\n", errorID);
@@ -1074,23 +1073,19 @@ ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRI
         return errorID;
     }
 
-    init_stack(&S);
-
     n = A->rows;
     m = B->columns;
 
-    L = creat_matrix(n, n, &errorID, &S);
-    if (errorID != _ERROR_NO_ERROR) goto EXIT;
+    if (L->rows != n || L->columns != n || U->rows != n || U->columns != n || y->rows != n || y->columns != m)
+    {
+        errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
 
-    U = creat_matrix(n, n, &errorID, &S);
-    if (errorID != _ERROR_NO_ERROR) goto EXIT;
+    memcpy(U->p, A->p, (size_t)n * (size_t)n * sizeof(REAL));
+    memset(L->p, 0, (size_t)n * (size_t)n * sizeof(REAL));
 
-    /* 关键修复：这里必须是 n*m，而不是 n*n */
-    y = creat_matrix(n, m, &errorID, &S);
-    if (errorID != _ERROR_NO_ERROR) goto EXIT;
-
-    memcpy(U->p, A->p, n * n * sizeof(REAL));
-    memset(L->p, 0, n * n * sizeof(REAL));
     for (i = 0; i < n; i++)
     {
         L->p[i * n + i] = 1.0;
@@ -1100,15 +1095,18 @@ ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRI
     {
         index = -1;
         maxvalue = 0.0;
+
         for (i = j; i < n; i++)
         {
             temp = fabs(U->p[i * n + j]);
+
             if (temp > maxvalue)
             {
                 maxvalue = temp;
                 index = i;
             }
         }
+
         if (index == -1)
         {
             continue;
@@ -1145,6 +1143,7 @@ ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRI
         {
             s = i * n + j;
             L->p[s] = U->p[s] / U->p[j * n + j];
+
             for (k = j; k < n; k++)
             {
                 U->p[i * n + k] -= L->p[s] * U->p[j * n + k];
@@ -1156,8 +1155,7 @@ ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRI
     {
         if (fabs(U->p[i * n + i]) < 1.0e-20)
         {
-            errorID = _ERROR_MATRIX_EQUATION_HAS_NO_SOLUTIONS;
-            goto EXIT;
+            return _ERROR_MATRIX_EQUATION_HAS_NO_SOLUTIONS;
         }
     }
 
@@ -1166,10 +1164,12 @@ ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRI
         for (i = 0; i < n; i++)
         {
             sum = 0.0;
+
             for (k = 0; k < i; k++)
             {
                 sum += L->p[i * n + k] * y->p[k * m + j];
             }
+
             y->p[i * m + j] = B->p[i * m + j] - sum;
         }
     }
@@ -1179,18 +1179,107 @@ ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRI
         for (i = n - 1; i >= 0; i--)
         {
             sum = 0.0;
+
             for (k = i + 1; k < n; k++)
             {
                 sum += U->p[i * n + k] * B->p[k * m + j];
             }
+
             B->p[i * m + j] = (y->p[i * m + j] - sum) / U->p[i * n + i];
         }
     }
+
+    return errorID;
+}
+
+// 有动态分配求逆接口
+ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRIX* B)
+{
+    MATRIX* L = NULL;
+    MATRIX* U = NULL;
+    MATRIX* y = NULL;
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+    STACKS S;
+
+    if (A == NULL || B == NULL || A->p == NULL || B->p == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    if (A->rows != A->columns || B->rows != A->rows)
+    {
+        errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    init_stack(&S);
+
+    L = creat_matrix(A->rows, A->rows, &errorID, &S);
+    if (errorID != _ERROR_NO_ERROR) goto EXIT;
+
+    U = creat_matrix(A->rows, A->rows, &errorID, &S);
+    if (errorID != _ERROR_NO_ERROR) goto EXIT;
+
+    y = creat_matrix(A->rows, B->columns, &errorID, &S);
+    if (errorID != _ERROR_NO_ERROR) goto EXIT;
+
+    errorID = solve_matrix_equation_by_lup_decomposition_core(A, B, L, U, y);
 
 EXIT:
     free_stack(&S);
     return errorID;
 }
+
+// 无动态分配求逆接口
+ERROR_ID matrix_inverse_noalloc(_IN MATRIX* A, _OUT MATRIX* invA, _IN_OUT MATRIX* L, _IN_OUT MATRIX* U, _IN_OUT MATRIX* y)
+{
+    INDEX i;
+    INTEGER n;
+    ERROR_ID errorID = _ERROR_NO_ERROR;
+
+    if (A == NULL || invA == NULL || L == NULL || U == NULL || y == NULL || A->p == NULL || invA->p == NULL || L->p == NULL || U->p == NULL || y->p == NULL)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    if (A->p == invA->p)
+    {
+        errorID = _ERROR_INPUT_PARAMETERS_ERROR;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    if (A->rows != A->columns)
+    {
+        errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    n = A->rows;
+
+    if (invA->rows != n || invA->columns != n || L->rows != n || L->columns != n || U->rows != n || U->columns != n || y->rows != n || y->columns != n)
+    {
+        errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
+        printf("矩阵运算错误代码：%u\n", errorID);
+        return errorID;
+    }
+
+    memset(invA->p, 0, (size_t)n * (size_t)n * sizeof(REAL));
+
+    for (i = 0; i < n; i++)
+    {
+        invA->p[i * n + i] = 1.0;
+    }
+
+    return solve_matrix_equation_by_lup_decomposition_core(A, invA, L, U, y);
+}
+
 ERROR_ID EigenValueVecter(_IN MATRIX* A, _OUT MATRIX* B, _OUT MATRIX* C)
 {
     INDEX i, j, n;
