@@ -57,5 +57,8 @@ namespace DataFusion
 
     protected:
 
+    double LastObservedAngle[3] = {0.0, 0.0, 0.0};
+    double ObservedAngleTurn[3] = {0.0, 0.0, 0.0};
+
   };
 }

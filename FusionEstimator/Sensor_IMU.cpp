@@ -53,15 +53,13 @@ namespace DataFusion
         ObservationCorrect_AngularVelocity();
       }
         
-      static double ObservationAngleLast[3] = {0.0, 0.0, 0.0};
-      static double ObservationAngleTurn[3] = {0.0, 0.0, 0.0};
       double ObservationAngle[3] = {
           Observation[0],
           Observation[3],
           Observation[6]
       };
 
-      array_angle_unwrap(ObservationAngle, ObservationAngleLast, ObservationAngleTurn, 3);
+      array_angle_unwrap(ObservationAngle, LastObservedAngle, ObservedAngleTurn, 3);
 
       Observation[0] = ObservationAngle[0];
       Observation[3] = ObservationAngle[1];

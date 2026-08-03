@@ -292,6 +292,20 @@ public:
                 status[IndexStatusOK] = 1;
             legs_pos->UseGo2P();
         }
+        else if (status[IndexInOrOut] == 121){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 121;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseSP();
+        }
+        else if (status[IndexInOrOut] == 140){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 140;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseMW_D();
+        }
         else if (status[IndexInOrOut] == 141){
             status[IndexInOrOut] = 0;
             status[IndexStatusOK] = status[IndexStatusOK] + 141;
@@ -305,6 +319,13 @@ public:
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
             legs_pos->UseMW_B();
+        }
+        else if (status[IndexInOrOut] == 160){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 160;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseLW();
         }
     }
 
@@ -337,7 +358,6 @@ public:
             array_quaternion_normalize(q, q);
         
         const double CurrentTimestamp = 1e-3 * static_cast<double>(st.imu.timestamp);
-        static double LastUsedTimestamp = 0, StartTimeStamp = 0;
 
         if (!(CurrentTimestamp - StartTimeStamp - LastUsedTimestamp < 1) || !(CurrentTimestamp - StartTimeStamp - LastUsedTimestamp >0))
             StartTimeStamp = CurrentTimestamp - LastUsedTimestamp;
@@ -442,23 +462,25 @@ private:
     std::shared_ptr<DataFusion::SensorLegsPos>    legs_pos;
     std::shared_ptr<DataFusion::SensorLegsOri>    legs_ori;
 
+    double LastUsedTimestamp = 0, StartTimeStamp = 0;
+    double LastSignal[3][48] = {0};
+    int LastSignalMaxIndex[3] = {9,9,48};
+    
     bool Signal_Available_Check(double Signal[], int type)
     {
-        static double last[3][48] = {0};
-        static int Number[3] = {9,9,48};
         bool diff = false;
 
-        for (int i = 0; i < Number[type]; ++i) {
+        for (int i = 0; i < LastSignalMaxIndex[type]; ++i) {
             if (!(Signal[i] < 9999.0 && Signal[i] > -9999.0))
                 return false;
-            if (Signal[i] != last[type][i])
+            if (Signal[i] != LastSignal[type][i])
                 diff = true;
         }
         if(!diff)
             return false;
         else
-            for (int i = 0; i < Number[type]; ++i)
-                last[type][i] = Signal[i];
+            for (int i = 0; i < LastSignalMaxIndex[type]; ++i)
+                LastSignal[type][i] = Signal[i];
         return true;
     }
 };
