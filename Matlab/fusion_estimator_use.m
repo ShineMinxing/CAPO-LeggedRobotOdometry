@@ -3,9 +3,9 @@ cd(fileparts(mfilename('fullpath')));
 
 % CSV_PATH = 'Data/MW_D_GCTest2'; DogMode = 140;
 % CSV_PATH = 'Data/MW_Vibration_OnRack_Pose'; DogMode = 140;
-CSV_PATH = 'Data/MW_D_XY150Z10'; DogMode = 140;
+% CSV_PATH = 'Data/MW_D_XY150Z10'; DogMode = 140;
 % CSV_PATH = 'Data/MW_D_Car'; DogMode = 140;
-% CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
+CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
 % CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
 % CSV_PATH = 'Data/LW_Collision_Wheel'; DogMode = 160;
 % CSV_PATH = 'Data/LW_Collision_Trot'; DogMode = 160;
