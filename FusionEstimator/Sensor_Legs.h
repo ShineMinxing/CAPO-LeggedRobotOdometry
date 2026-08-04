@@ -178,8 +178,8 @@ namespace DataFusion
     {
       for (int i = 0; i < MAX_CONTACT_CHAIN; ++i) LegChains_[i] = LegTFChain();
 
-      Environement_Height_Scope = 0.07;
-      FootEffortThreshold = -70.0;
+      Environement_Height_Scope = 0.075;
+      FootEffortThreshold = -75.0;
 
       // FL
       LegChains_[0].node_num = 4;

@@ -358,6 +358,7 @@ namespace DataFusion
                 FootfallPositionRecord[LegNumber][1] = StateSpaceModel->EstimatedState[3] + JointsBodyWFPosition[LegNumber][FootNodeIndex][1];
                 FootfallPositionRecord[LegNumber][2] = 0;
                 FootfallPositionRecord[LegNumber][3] = ObservationTime;
+                ClusterFootfallHeight(LegNumber, move_dir_z);
 
                 if (LegChains_[LegNumber].wheel_q_index >= 0)
                     WheelAnglePrev[LegNumber] = Message[LegChains_[LegNumber].wheel_q_index];
@@ -530,13 +531,16 @@ namespace DataFusion
         else
             DecreaseSearch = 0;
 
+        //从上次足点高度记录开始，向上或下搜索，直到边界或越过当前足高度
         while(MapHeightStore[CheckIndex][3+DecreaseSearch] != -1)
         {
+            //删除不是边界的过期节点
             if(std::abs(ObservationTime-MapHeightStore[CheckIndex][2]) > Data_Fading_Time && MapHeightStore[CheckIndex][4-DecreaseSearch] != -1)
             {
+                //如果过期节点是一个在用足点记录，就不删除
                 bool HeightRecordNotUsing = true;
                 for(int Leg = 0; Leg < MAX_CONTACT_CHAIN; Leg++)
-                    if(MapHeightLeg[Leg] == CheckIndex ||(CheckIndex != MapHeightStoreCount && MapHeightLeg[Leg] == MapHeightStoreCount))
+                    if(MapHeightLeg[Leg] == CheckIndex)
                         HeightRecordNotUsing = false;
                 if(HeightRecordNotUsing)
                 {
@@ -551,6 +555,13 @@ namespace DataFusion
                         MapHeightStore[CheckIndex][2] = MapHeightStore[MapHeightStoreCount][2];
                         MapHeightStore[CheckIndex][3] = MapHeightStore[MapHeightStoreCount][3];
                         MapHeightStore[CheckIndex][4] = MapHeightStore[MapHeightStoreCount][4];
+                        MapHeightStore[CheckIndex][5] = MapHeightStore[MapHeightStoreCount][5];
+                        
+                        //如果搬移的末位节点是足的记录点，就足记录重新指向
+                        for(int Leg = 0; Leg < MAX_CONTACT_CHAIN; Leg++)
+                            if(MapHeightLeg[Leg] == MapHeightStoreCount)
+                                MapHeightLeg[Leg] = CheckIndex;
+
                         if(MapHeightStore[CheckIndex][3] != -1)
                             MapHeightStore[(int)MapHeightStore[CheckIndex][3]][4] = CheckIndex;
                         else
@@ -585,7 +596,7 @@ namespace DataFusion
             TempDoubleB = std::abs(MapHeightStore[int(MapHeightStore[CheckIndex][4-DecreaseSearch])][0] - FootfallPositionRecord[LegNumber][2]);
 
         // 如果都符合要求，优先选择早记录的点
-        if(TempDoubleA <= Environement_Height_Scope && TempDoubleB <= Environement_Height_Scope)
+        if((TempDoubleA <= Environement_Height_Scope && TempDoubleB <= Environement_Height_Scope && move_dir_z == 0.0) || (TempDoubleA <= SlopeModeStepHeightThreshold && TempDoubleB <= SlopeModeStepHeightThreshold))
             MapHeightStore[CheckIndex][5] < MapHeightStore[int(MapHeightStore[CheckIndex][4-DecreaseSearch])][5] ? TempDoubleB += 99.99 : TempDoubleA += 99.99;
 
         int HitIndex = TempDoubleA <= TempDoubleB ? CheckIndex : int(MapHeightStore[CheckIndex][4-DecreaseSearch]);
@@ -596,10 +607,11 @@ namespace DataFusion
             MapHeightStore[HitIndex][1] += 1;
             MapHeightStore[HitIndex][2] = ObservationTime;
 
-            if(std::abs(MapHeightStore[HitIndex][0] - FootfallPositionRecord[LegNumber][2]) <= Environement_Height_Scope / 10)
+            if(std::abs(MapHeightStore[HitIndex][0] - FootfallPositionRecord[LegNumber][2]) <= Environement_Height_Scope / 4)
                 Zdifference = 0;
             else
             {
+                //根据新落足点迭代历史高度记录
                 // MapHeightStore[HitIndex][0] = (MapHeightStore[HitIndex][0] * MapHeightStore[HitIndex][1] + FootfallPositionRecord[LegNumber][2]) / (MapHeightStore[HitIndex][1] + 1);
                 Zdifference = FootfallPositionRecord[LegNumber][2] - MapHeightStore[HitIndex][0];
             }
