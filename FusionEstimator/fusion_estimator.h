@@ -30,14 +30,15 @@ auto Robot_Estimation = CreateRobot_Estimation();
 ```
 2. Runtime estimation:
    运行时估计：
-       #include "LowlevelState.h"
-       LowlevelState st{};
-       Odometer odom = Robot_Estimation.fusion_estimator(st);
+        #include "LowlevelState.h"
+        IMU imu;
+        MotorState motorState[MOTOR_NUM];
+        Proprioception proprioception = Robot_Estimation.fusion_estimator(imu, motorState);
 
 3. Runtime configuration:
    运行时配置：
-       double status[100] = {0};
-       Robot_Estimation.fusion_estimator_status(status);
+        double status[100] = {0};
+        Robot_Estimation.fusion_estimator_status(status);
 ```
 
 Configuration index meaning:
@@ -329,15 +330,15 @@ public:
         }
     }
 
-    Proprioception fusion_estimator(const LowlevelState& st)
+    Proprioception fusion_estimator(const IMU& imu, const MotorState (&motorState)[MOTOR_NUM])
     {
         Proprioception proprio;
         
         double q[4] = {
-            static_cast<double>(st.imu.quaternion[0]),
-            static_cast<double>(st.imu.quaternion[1]),
-            static_cast<double>(st.imu.quaternion[2]),
-            static_cast<double>(st.imu.quaternion[3])
+            static_cast<double>(imu.quaternion[0]),
+            static_cast<double>(imu.quaternion[1]),
+            static_cast<double>(imu.quaternion[2]),
+            static_cast<double>(imu.quaternion[3])
         };
 
         FLAG IsQuaternionOK = 0;
@@ -357,7 +358,7 @@ public:
         else
             array_quaternion_normalize(q, q);
         
-        const double CurrentTimestamp = 1e-3 * static_cast<double>(st.imu.timestamp);
+        const double CurrentTimestamp = 1e-3 * static_cast<double>(imu.timestamp);
 
         if (!(CurrentTimestamp - StartTimeStamp - LastUsedTimestamp < 1) || !(CurrentTimestamp - StartTimeStamp - LastUsedTimestamp >0))
             StartTimeStamp = CurrentTimestamp - LastUsedTimestamp;
@@ -367,9 +368,9 @@ public:
 
         if (imu_acc->IMUAccEnable) {
             double msg_acc[9] = {0};
-            msg_acc[3*0 + 2] = static_cast<double>(st.imu.accelerometer[0]);
-            msg_acc[3*1 + 2] = static_cast<double>(st.imu.accelerometer[1]);
-            msg_acc[3*2 + 2] = static_cast<double>(st.imu.accelerometer[2]);
+            msg_acc[3*0 + 2] = static_cast<double>(imu.accelerometer[0]);
+            msg_acc[3*1 + 2] = static_cast<double>(imu.accelerometer[1]);
+            msg_acc[3*2 + 2] = static_cast<double>(imu.accelerometer[2]);
             
             if(Signal_Available_Check(msg_acc,0))
                 imu_acc->SensorDataHandle(msg_acc, UsedTimestamp);
@@ -388,9 +389,9 @@ public:
         msg_rpy[3*2] = yaw + legs_ori->yaw_correct;
 
         if(imu_gyro->IMUGyroEnable){
-            msg_rpy[3*0 + 1] = static_cast<double>(st.imu.gyroscope[0]);
-            msg_rpy[3*1 + 1] = static_cast<double>(st.imu.gyroscope[1]);
-            msg_rpy[3*2 + 1] = static_cast<double>(st.imu.gyroscope[2]);
+            msg_rpy[3*0 + 1] = static_cast<double>(imu.gyroscope[0]);
+            msg_rpy[3*1 + 1] = static_cast<double>(imu.gyroscope[1]);
+            msg_rpy[3*2 + 1] = static_cast<double>(imu.gyroscope[2]);
         }
 
         if(Signal_Available_Check(msg_rpy,1))
@@ -400,7 +401,7 @@ public:
             double joint[48];
 
             for (int i = 0; i < 16; ++i) {
-                const auto& m = st.motorState[i];
+                const auto& m = motorState[i];
                 joint[0 + i]  = static_cast<double>(m.q);
                 joint[16 + i] = static_cast<double>(m.dq);
                 joint[32 + i] = static_cast<double>(m.tauEst);

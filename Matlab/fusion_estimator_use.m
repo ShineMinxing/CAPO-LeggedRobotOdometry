@@ -1,58 +1,58 @@
-% clear all;clc;
-% cd(fileparts(mfilename('fullpath')));
-% 
-% % CSV_PATH = 'Data/MW_D_GCTest2'; DogMode = 140;
-% % CSV_PATH = 'Data/MW_Vibration_OnRack_Pose'; DogMode = 140;
-% CSV_PATH = 'Data/MW_D_XY150Z10'; DogMode = 140;
-% % CSV_PATH = 'Data/MW_D_Car'; DogMode = 140;
-% % CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
-% % CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
-% % CSV_PATH = 'Data/LW_Collision_Wheel'; DogMode = 160;
-% % CSV_PATH = 'Data/LW_Collision_Trot'; DogMode = 160;
-% 
-% used_lines = 300000;
-% 
-% data = readmatrix(CSV_PATH);
-% N = size(data,1);
-% 
-% fid = fopen(CSV_PATH,'r');
-% C = textscan(fid,'%s%*[^\n]',N+1,'Delimiter',',');
-% fclose(fid);
-% 
-% time_strs = string(C{1}(2:end));
-% pat = '\.(\d{1,3})(?!\d)';
-% time_strs_fix = regexprep(time_strs,pat,'.${pad($1,3,"left","0")}');
-% t0 = datetime(time_strs_fix(1),'InputFormat','yyyy-MM-dd HH:mm:ss.SSS');
-% t = datetime(time_strs_fix,'InputFormat','yyyy-MM-dd HH:mm:ss.SSS');
-% ts_ms_all = int64(round(milliseconds(t-t0)));
-% data(:,1) = ts_ms_all;
-% 
-% N = min(size(data,1),used_lines);
-% data = data(1:N,:);
-% ts_ms_all = ts_ms_all(1:N);
-% 
-% base0 = 2;
-% if length(data(1,:)) == 220
-%     stride = 13;
-% elseif length(data(1,:)) == 236
-%     stride = 14;
-% elseif length(data(1,:)) > 236
-%     stride = 14;
-%     data = data(:,1:236);
-% else
-%     error('Unsupported CSV column count: %d',length(data(1,:)));
-% end
-% 
-% motor_num = 16;
-% imu0 = base0 + motor_num*stride;
-% 
-% q16 = data(:,base0+(0:15)*stride+6);
-% dq16 = data(:,base0+(0:15)*stride+7);
-% tau16 = data(:,base0+(0:15)*stride+8);
-% 
-% acc = data(:,imu0+(1:3));
-% gyro = data(:,imu0+(4:6));
-% quat = data(:,imu0+(7:10));
+clear all;clc;
+cd(fileparts(mfilename('fullpath')));
+
+% CSV_PATH = 'Data/MW_D_GCTest2'; DogMode = 140;
+% CSV_PATH = 'Data/MW_Vibration_OnRack_Pose'; DogMode = 140;
+CSV_PATH = 'Data/MW_D_XY150Z10'; DogMode = 140;
+% CSV_PATH = 'Data/MW_D_Car'; DogMode = 140;
+% CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
+% CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
+% CSV_PATH = 'Data/LW_Collision_Wheel'; DogMode = 160;
+% CSV_PATH = 'Data/LW_Collision_Trot'; DogMode = 160;
+
+used_lines = 300000;
+
+data = readmatrix(CSV_PATH);
+N = size(data,1);
+
+fid = fopen(CSV_PATH,'r');
+C = textscan(fid,'%s%*[^\n]',N+1,'Delimiter',',');
+fclose(fid);
+
+time_strs = string(C{1}(2:end));
+pat = '\.(\d{1,3})(?!\d)';
+time_strs_fix = regexprep(time_strs,pat,'.${pad($1,3,"left","0")}');
+t0 = datetime(time_strs_fix(1),'InputFormat','yyyy-MM-dd HH:mm:ss.SSS');
+t = datetime(time_strs_fix,'InputFormat','yyyy-MM-dd HH:mm:ss.SSS');
+ts_ms_all = int64(round(milliseconds(t-t0)));
+data(:,1) = ts_ms_all;
+
+N = min(size(data,1),used_lines);
+data = data(1:N,:);
+ts_ms_all = ts_ms_all(1:N);
+
+base0 = 2;
+if length(data(1,:)) == 220
+    stride = 13;
+elseif length(data(1,:)) == 236
+    stride = 14;
+elseif length(data(1,:)) > 236
+    stride = 14;
+    data = data(:,1:236);
+else
+    error('Unsupported CSV column count: %d',length(data(1,:)));
+end
+
+motor_num = 16;
+imu0 = base0 + motor_num*stride;
+
+q16 = data(:,base0+(0:15)*stride+6);
+dq16 = data(:,base0+(0:15)*stride+7);
+tau16 = data(:,base0+(0:15)*stride+8);
+
+acc = data(:,imu0+(1:3));
+gyro = data(:,imu0+(4:6));
+quat = data(:,imu0+(7:10));
 
 fusion_estimator_mex('reset');
 
@@ -118,7 +118,7 @@ WordSize = 25;
 PlotFusionEstimator = @plot_fusion_estimator_logs_local;
 PlotDogMotion = @plot_dog_motion_local;
 
-% PlotFusionEstimator()
+PlotFusionEstimator()
 % PlotDogMotion()
 
 

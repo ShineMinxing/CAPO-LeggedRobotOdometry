@@ -53,29 +53,31 @@ void mexFunction(int nlhs, mxArray* plhs[], int nrhs, const mxArray* prhs[])
         const double* gyrod = mxGetPr(prhs[6]);
         const double* quatd = mxGetPr(prhs[7]);
 
-        LowlevelState st{};
-        st.imu.timestamp = ts_ms;
+        IMU imu;
+        MotorState motorState[MOTOR_NUM];
 
-        st.imu.accelerometer[0] = static_cast<float>(accd[0]);
-        st.imu.accelerometer[1] = static_cast<float>(accd[1]);
-        st.imu.accelerometer[2] = static_cast<float>(accd[2]);
+        imu.timestamp = ts_ms;
 
-        st.imu.gyroscope[0] = static_cast<float>(gyrod[0]);
-        st.imu.gyroscope[1] = static_cast<float>(gyrod[1]);
-        st.imu.gyroscope[2] = static_cast<float>(gyrod[2]);
+        imu.accelerometer[0] = static_cast<float>(accd[0]);
+        imu.accelerometer[1] = static_cast<float>(accd[1]);
+        imu.accelerometer[2] = static_cast<float>(accd[2]);
 
-        st.imu.quaternion[0] = static_cast<float>(quatd[0]);
-        st.imu.quaternion[1] = static_cast<float>(quatd[1]);
-        st.imu.quaternion[2] = static_cast<float>(quatd[2]);
-        st.imu.quaternion[3] = static_cast<float>(quatd[3]);
+        imu.gyroscope[0] = static_cast<float>(gyrod[0]);
+        imu.gyroscope[1] = static_cast<float>(gyrod[1]);
+        imu.gyroscope[2] = static_cast<float>(gyrod[2]);
 
-        for (int i = 0; i < 16; ++i) {
-            st.motorState[i].q = static_cast<float>(qd[i]);
-            st.motorState[i].dq = static_cast<float>(dqd[i]);
-            st.motorState[i].tauEst = static_cast<float>(taud[i]);
+        imu.quaternion[0] = static_cast<float>(quatd[0]);
+        imu.quaternion[1] = static_cast<float>(quatd[1]);
+        imu.quaternion[2] = static_cast<float>(quatd[2]);
+        imu.quaternion[3] = static_cast<float>(quatd[3]);
+
+        for (int i = 0; i < MOTOR_NUM; ++i) {
+            motorState[i].q = static_cast<float>(qd[i]);
+            motorState[i].dq = static_cast<float>(dqd[i]);
+            motorState[i].tauEst = static_cast<float>(taud[i]);
         }
 
-        const Proprioception proprio = g_core->fusion_estimator(st);
+        const Proprioception proprio = g_core->fusion_estimator(imu, motorState);
 
         const char* fn[] = {"PositionXYZ", "OrientationRPY", "FootfallAverage", "FootLandedProbability", "DogWeight", "LegCollisionDetect", "JointsBodyWFPosition", "JointsBodyWFEffort","MotorGravityCompensate"};
         plhs[0] = mxCreateStructMatrix(1, 1, 9, fn);
