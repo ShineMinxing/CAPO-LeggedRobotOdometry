@@ -229,7 +229,7 @@ namespace DataFusion
         double JJT[3][3];
         double JJT_inv[3][3];
 
-        for (int target = 1; target <= joint_num; ++target)
+        for (int target = 1; target < joint_num; ++target)
         {
             Jtau[0] = Jtau[1] = Jtau[2] = 0.0;
 
