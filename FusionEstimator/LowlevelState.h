@@ -61,17 +61,8 @@ struct Proprioception
     float MotorGravityCompensate[4][3]; // FL, FR, RL, RR; Hip, Thigh, Calf gravity compensation torque
 
     Proprioception()
-        : PositionXYZ{}, OrientationRPY{}, FootfallAverage{}, FootLandedProbability{},
-        DogWeight(0.0f), LegCollisionDetect(0), JointsBodyWFPosition{}, JointsBodyWFEffort{}
+        : PositionXYZ{}, OrientationRPY{}, FootfallAverage{}, FootLandedProbability{}, DogWeight(0.0f), LegCollisionDetect(0), JointsBodyWFPosition{}, JointsBodyWFEffort{}, MotorGravityCompensate{}
     {}
-};
-
-
-struct LowlevelState
-{
-    IMU imu;                          // imu
-    MotorState motorState[MOTOR_NUM]; // 电机状态
-    Proprioception proprioception;    // 本体感知
 };
 
 #endif /* __CONTROL_FRAME_LOWLEVELSTATE_H__ */

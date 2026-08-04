@@ -9,13 +9,13 @@ namespace DataFusion
       
       ObservationTime = Time;
       
-      memcpy(Observation,  Message, (size_t)StateSpaceModel->Nz * sizeof(double));
+      memcpy(Observation,  Message, (size_t)StateSpaceModel->Nz99 * sizeof(double));
 
       for(int i = 0; i < 3; i++)
       {
-          StateSpaceModel->Matrix_H[(3 * i + 0) * StateSpaceModel->Nx + (3 * i + 0)] = 0;
-          StateSpaceModel->Matrix_H[(3 * i + 1) * StateSpaceModel->Nx + (3 * i + 1)] = 0;
-          StateSpaceModel->Matrix_H[(3 * i + 2) * StateSpaceModel->Nx + (3 * i + 2)] = 1;
+          StateSpaceModel->Matrix_H99[(3 * i + 0) * StateSpaceModel->Nx99 + (3 * i + 0)] = 0;
+          StateSpaceModel->Matrix_H99[(3 * i + 1) * StateSpaceModel->Nx99 + (3 * i + 1)] = 0;
+          StateSpaceModel->Matrix_H99[(3 * i + 2) * StateSpaceModel->Nx99 + (3 * i + 2)] = 1;
       }
           
       ObservationCorrect_Acceleration();
@@ -29,39 +29,37 @@ namespace DataFusion
     {      
       
       ObservationTime = Time;
-      memcpy(Observation,  Message, (size_t)StateSpaceModel->Nz * sizeof(double));
+      memcpy(Observation,  Message, (size_t)StateSpaceModel->Nz99 * sizeof(double));
 
       if((!IMUQuaternionEnable)&&(!IMUGyroEnable)){
-        StateSpaceModel->EstimatedState[0] = Observation[0];
-        StateSpaceModel->EstimatedState[3] = Observation[3];
-        StateSpaceModel->EstimatedState[6] = Observation[6];
+        StateSpaceModel->EstimatedState99[0] = Observation[0];
+        StateSpaceModel->EstimatedState99[3] = Observation[3];
+        StateSpaceModel->EstimatedState99[6] = Observation[6];
         UpdateEst_Quaternion();
       }
 
       for(int i = 0; i < 9; i++)
-          StateSpaceModel->Matrix_H[i * StateSpaceModel->Nx + i] = 0;
+          StateSpaceModel->Matrix_H99[i * StateSpaceModel->Nx99 + i] = 0;
 
       if(IMUQuaternionEnable){
         for(int i = 0; i < 3; i++)
-            StateSpaceModel->Matrix_H[(3 * i + 0) * StateSpaceModel->Nx + (3 * i + 0)] = 1;
+            StateSpaceModel->Matrix_H99[(3 * i + 0) * StateSpaceModel->Nx99 + (3 * i + 0)] = 1;
         ObservationCorrect_Orientation();
       }
 
       if(IMUGyroEnable){
         for(int i = 0; i < 3; i++)
-            StateSpaceModel->Matrix_H[(3 * i + 1) * StateSpaceModel->Nx + (3 * i + 1)] = 1;
+            StateSpaceModel->Matrix_H99[(3 * i + 1) * StateSpaceModel->Nx99 + (3 * i + 1)] = 1;
         ObservationCorrect_AngularVelocity();
       }
         
-      static double ObservationAngleLast[3] = {0.0, 0.0, 0.0};
-      static double ObservationAngleTurn[3] = {0.0, 0.0, 0.0};
       double ObservationAngle[3] = {
           Observation[0],
           Observation[3],
           Observation[6]
       };
 
-      array_angle_unwrap(ObservationAngle, ObservationAngleLast, ObservationAngleTurn, 3);
+      array_angle_unwrap(ObservationAngle, LastObservedAngle, ObservedAngleTurn, 3);
 
       Observation[0] = ObservationAngle[0];
       Observation[3] = ObservationAngle[1];

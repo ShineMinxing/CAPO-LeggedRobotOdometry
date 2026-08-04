@@ -142,11 +142,15 @@ public:
         SMXFE_odom_2D.twist.covariance[21] = 0.1;  // angular x
         SMXFE_odom_2D.twist.covariance[28] = 0.1;  // angular y
         SMXFE_odom_2D.twist.covariance[35] = 0.1;  // angular z
+
+        imu.timestamp = 0;
     }
 
 private:
-    FusionEstimatorCore fe_;  // 核心融合器（已封装好）
-    LowlevelState st_;        // “静态”输入缓存（节点生命周期内一直保留）
+    FusionEstimatorCore fe_;           // 核心融合器（已封装好）
+    IMU imu;                           // 最新IMU数据
+    MotorState motorState[MOTOR_NUM];  // 最新电机数据
+    Proprioception proprioception;     // 最新本体感知估计结果
 
     nav_msgs::msg::Odometry SMXFE_odom;
     nav_msgs::msg::Odometry SMXFE_odom_2D;
@@ -175,27 +179,27 @@ private:
 
         SMXFE_odom_2D.header.stamp = SMXFE_odom.header.stamp;
 
-        st_.imu.timestamp = static_cast<int64_t>(1e3 * msg->header.stamp.sec + 1e-6 * msg->header.stamp.nanosec);
+        imu.timestamp = static_cast<int64_t>(1e3 * msg->header.stamp.sec + 1e-6 * msg->header.stamp.nanosec);
 
-        st_.imu.accelerometer[0] = msg->linear_acceleration.x;
-        st_.imu.accelerometer[1] = msg->linear_acceleration.y;
-        st_.imu.accelerometer[2] = msg->linear_acceleration.z;
+        imu.accelerometer[0] = msg->linear_acceleration.x;
+        imu.accelerometer[1] = msg->linear_acceleration.y;
+        imu.accelerometer[2] = msg->linear_acceleration.z;
 
-        st_.imu.gyroscope[0] = msg->angular_velocity.x;
-        st_.imu.gyroscope[1] = msg->angular_velocity.y;
-        st_.imu.gyroscope[2] = msg->angular_velocity.z;
+        imu.gyroscope[0] = msg->angular_velocity.x;
+        imu.gyroscope[1] = msg->angular_velocity.y;
+        imu.gyroscope[2] = msg->angular_velocity.z;
 
-        st_.imu.quaternion[0] = msg->orientation.w;
-        st_.imu.quaternion[1] = msg->orientation.x;
-        st_.imu.quaternion[2] = msg->orientation.y;
-        st_.imu.quaternion[3] = msg->orientation.z;
+        imu.quaternion[0] = msg->orientation.w;
+        imu.quaternion[1] = msg->orientation.x;
+        imu.quaternion[2] = msg->orientation.y;
+        imu.quaternion[3] = msg->orientation.z;
 
         msg_received[0] = 1;
     }
 
     void joint_callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg)
     {
-        if (st_.imu.timestamp <= 0.0) return; 
+        if (imu.timestamp <= 0.0) return; 
         const auto& arr = msg->data;
         const size_t n = arr.size();
 
@@ -211,51 +215,51 @@ private:
 
         for (int i = 0; i < 16; ++i)
         {
-            st_.motorState[i].q      = arr[i];
-            st_.motorState[i].dq     = arr[16 + i];
-            st_.motorState[i].tauEst = arr[32 + i];
+            motorState[i].q      = arr[i];
+            motorState[i].dq     = arr[16 + i];
+            motorState[i].tauEst = arr[32 + i];
         }
         
         for (int leg = 0; leg < 4; ++leg)
         {
-            if(contact_sensor_threshold!=0 && st_.motorState[4*leg+0].tauEst==0 && st_.motorState[4*leg+1].tauEst==0 && st_.motorState[4*leg+3].tauEst==0)
-                st_.motorState[4*leg+2].tauEst = (st_.motorState[4*leg+2].tauEst >= contact_sensor_threshold) ? 100.0 : 0.0;
+            if(contact_sensor_threshold!=0 && motorState[4*leg+0].tauEst==0 && motorState[4*leg+1].tauEst==0 && motorState[4*leg+3].tauEst==0)
+                motorState[4*leg+2].tauEst = (motorState[4*leg+2].tauEst >= contact_sensor_threshold) ? 100.0 : 0.0;
         }
 
         // ---------------- Estimation is triggered only by the joint callback ----------------
         // ---------------- 估计更新只在 joint 回调中触发 ----------------
-        st_.proprioception = fe_.fusion_estimator(st_);
+        proprioception = fe_.fusion_estimator(imu, motorState);
 
-        SMXFE_odom.pose.pose.position.x = st_.proprioception.PositionXYZ[0];
-        SMXFE_odom.pose.pose.position.y = st_.proprioception.PositionXYZ[3];
-        SMXFE_odom.pose.pose.position.z = st_.proprioception.PositionXYZ[6];
+        SMXFE_odom.pose.pose.position.x = proprioception.PositionXYZ[0];
+        SMXFE_odom.pose.pose.position.y = proprioception.PositionXYZ[3];
+        SMXFE_odom.pose.pose.position.z = proprioception.PositionXYZ[6];
 
-        SMXFE_odom.twist.twist.linear.x = st_.proprioception.PositionXYZ[1];
-        SMXFE_odom.twist.twist.linear.y = st_.proprioception.PositionXYZ[4];
-        SMXFE_odom.twist.twist.linear.z = st_.proprioception.PositionXYZ[7];
+        SMXFE_odom.twist.twist.linear.x = proprioception.PositionXYZ[1];
+        SMXFE_odom.twist.twist.linear.y = proprioception.PositionXYZ[4];
+        SMXFE_odom.twist.twist.linear.z = proprioception.PositionXYZ[7];
 
         tf2::Quaternion q;
-        q.setRPY(st_.proprioception.OrientationRPY[0], st_.proprioception.OrientationRPY[3], st_.proprioception.OrientationRPY[6]);
+        q.setRPY(proprioception.OrientationRPY[0], proprioception.OrientationRPY[3], proprioception.OrientationRPY[6]);
         SMXFE_odom.pose.pose.orientation = tf2::toMsg(q);
 
-        SMXFE_odom.twist.twist.angular.x = st_.proprioception.OrientationRPY[1];
-        SMXFE_odom.twist.twist.angular.y = st_.proprioception.OrientationRPY[4];
-        SMXFE_odom.twist.twist.angular.z = st_.proprioception.OrientationRPY[7];
+        SMXFE_odom.twist.twist.angular.x = proprioception.OrientationRPY[1];
+        SMXFE_odom.twist.twist.angular.y = proprioception.OrientationRPY[4];
+        SMXFE_odom.twist.twist.angular.z = proprioception.OrientationRPY[7];
 
-        SMXFE_odom_2D.pose.pose.position.x = st_.proprioception.PositionXYZ[0];
-        SMXFE_odom_2D.pose.pose.position.y = st_.proprioception.PositionXYZ[3];
+        SMXFE_odom_2D.pose.pose.position.x = proprioception.PositionXYZ[0];
+        SMXFE_odom_2D.pose.pose.position.y = proprioception.PositionXYZ[3];
         SMXFE_odom_2D.pose.pose.position.z = 0;
 
-        SMXFE_odom_2D.twist.twist.linear.x = st_.proprioception.PositionXYZ[1];
-        SMXFE_odom_2D.twist.twist.linear.y = st_.proprioception.PositionXYZ[4];
+        SMXFE_odom_2D.twist.twist.linear.x = proprioception.PositionXYZ[1];
+        SMXFE_odom_2D.twist.twist.linear.y = proprioception.PositionXYZ[4];
         SMXFE_odom_2D.twist.twist.linear.z = 0;
 
-        q.setRPY(0, 0, st_.proprioception.OrientationRPY[6]);
+        q.setRPY(0, 0, proprioception.OrientationRPY[6]);
         SMXFE_odom_2D.pose.pose.orientation = tf2::toMsg(q);
 
-        SMXFE_odom_2D.twist.twist.angular.x = st_.proprioception.OrientationRPY[1];
-        SMXFE_odom_2D.twist.twist.angular.y = st_.proprioception.OrientationRPY[4];
-        SMXFE_odom_2D.twist.twist.angular.z = st_.proprioception.OrientationRPY[7];
+        SMXFE_odom_2D.twist.twist.angular.x = proprioception.OrientationRPY[1];
+        SMXFE_odom_2D.twist.twist.angular.y = proprioception.OrientationRPY[4];
+        SMXFE_odom_2D.twist.twist.angular.z = proprioception.OrientationRPY[7];
 
         msg_received[1] = 1;
         Msg_Publish();
@@ -287,9 +291,9 @@ private:
 
             for (int node = 0; node < 4; ++node)
             {
-                const double x = st_.proprioception.JointsBodyWFPosition[leg][node][0] + st_.proprioception.PositionXYZ[0];
-                const double y = st_.proprioception.JointsBodyWFPosition[leg][node][1] + st_.proprioception.PositionXYZ[3];
-                const double z = st_.proprioception.JointsBodyWFPosition[leg][node][2] + st_.proprioception.PositionXYZ[6];
+                const double x = proprioception.JointsBodyWFPosition[leg][node][0] + proprioception.PositionXYZ[0];
+                const double y = proprioception.JointsBodyWFPosition[leg][node][1] + proprioception.PositionXYZ[3];
+                const double z = proprioception.JointsBodyWFPosition[leg][node][2] + proprioception.PositionXYZ[6];
 
                 visualization_msgs::msg::Marker marker;
 
@@ -349,13 +353,13 @@ private:
 
             geometry_msgs::msg::Point p0, p1;
 
-            p0.x = st_.proprioception.JointsBodyWFPosition[leg][3][0] + st_.proprioception.PositionXYZ[0];
-            p0.y = st_.proprioception.JointsBodyWFPosition[leg][3][1] + st_.proprioception.PositionXYZ[3];
-            p0.z = st_.proprioception.JointsBodyWFPosition[leg][3][2] + st_.proprioception.PositionXYZ[6];
+            p0.x = proprioception.JointsBodyWFPosition[leg][3][0] + proprioception.PositionXYZ[0];
+            p0.y = proprioception.JointsBodyWFPosition[leg][3][1] + proprioception.PositionXYZ[3];
+            p0.z = proprioception.JointsBodyWFPosition[leg][3][2] + proprioception.PositionXYZ[6];
 
-            p1.x = p0.x - st_.proprioception.JointsBodyWFEffort[leg][3][0] / 1000.0;
-            p1.y = p0.y - st_.proprioception.JointsBodyWFEffort[leg][3][1] / 1000.0;
-            p1.z = p0.z - st_.proprioception.JointsBodyWFEffort[leg][3][2] / 1000.0;
+            p1.x = p0.x - proprioception.JointsBodyWFEffort[leg][3][0] / 1000.0;
+            p1.y = p0.y - proprioception.JointsBodyWFEffort[leg][3][1] / 1000.0;
+            p1.z = p0.z - proprioception.JointsBodyWFEffort[leg][3][2] / 1000.0;
 
             visualization_msgs::msg::Marker force_arrow;
             force_arrow.header.stamp = SMXFE_odom.header.stamp;

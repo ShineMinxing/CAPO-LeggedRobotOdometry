@@ -30,14 +30,15 @@ auto Robot_Estimation = CreateRobot_Estimation();
 ```
 2. Runtime estimation:
    运行时估计：
-       #include "LowlevelState.h"
-       LowlevelState st{};
-       Odometer odom = Robot_Estimation.fusion_estimator(st);
+        #include "LowlevelState.h"
+        IMU imu;
+        MotorState motorState[MOTOR_NUM];
+        Proprioception proprioception = Robot_Estimation.fusion_estimator(imu, motorState);
 
 3. Runtime configuration:
    运行时配置：
-       double status[100] = {0};
-       Robot_Estimation.fusion_estimator_status(status);
+        double status[100] = {0};
+        Robot_Estimation.fusion_estimator_status(status);
 ```
 
 Configuration index meaning:
@@ -270,9 +271,9 @@ public:
             status[IndexStatusOK] = status[IndexStatusOK] + 20;
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
-            sensors[0]->EstimatedState[0] = 0;
-            sensors[0]->EstimatedState[3] = 0;
-            legs_ori->yaw_correct = legs_ori->yaw_correct - sensors[1]->EstimatedState[6];
+            sensors[0]->EstimatedState99[0] = 0;
+            sensors[0]->EstimatedState99[3] = 0;
+            legs_ori->yaw_correct = legs_ori->yaw_correct - sensors[1]->EstimatedState99[6];
             legs_pos->FootfallPositionRecordIsInitiated[0] = false;
             legs_pos->FootfallPositionRecordIsInitiated[1] = false;
             legs_pos->FootfallPositionRecordIsInitiated[2] = false;
@@ -292,6 +293,20 @@ public:
                 status[IndexStatusOK] = 1;
             legs_pos->UseGo2P();
         }
+        else if (status[IndexInOrOut] == 121){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 121;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseSP();
+        }
+        else if (status[IndexInOrOut] == 140){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 140;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseMW_D();
+        }
         else if (status[IndexInOrOut] == 141){
             status[IndexInOrOut] = 0;
             status[IndexStatusOK] = status[IndexStatusOK] + 141;
@@ -306,17 +321,24 @@ public:
                 status[IndexStatusOK] = 1;
             legs_pos->UseMW_B();
         }
+        else if (status[IndexInOrOut] == 160){
+            status[IndexInOrOut] = 0;
+            status[IndexStatusOK] = status[IndexStatusOK] + 160;
+            if (status[IndexStatusOK] > 999)
+                status[IndexStatusOK] = 1;
+            legs_pos->UseLW();
+        }
     }
 
-    Proprioception fusion_estimator(const LowlevelState& st)
+    Proprioception fusion_estimator(const IMU& imu, const MotorState (&motorState)[MOTOR_NUM])
     {
         Proprioception proprio;
         
         double q[4] = {
-            static_cast<double>(st.imu.quaternion[0]),
-            static_cast<double>(st.imu.quaternion[1]),
-            static_cast<double>(st.imu.quaternion[2]),
-            static_cast<double>(st.imu.quaternion[3])
+            static_cast<double>(imu.quaternion[0]),
+            static_cast<double>(imu.quaternion[1]),
+            static_cast<double>(imu.quaternion[2]),
+            static_cast<double>(imu.quaternion[3])
         };
 
         FLAG IsQuaternionOK = 0;
@@ -336,8 +358,7 @@ public:
         else
             array_quaternion_normalize(q, q);
         
-        const double CurrentTimestamp = 1e-3 * static_cast<double>(st.imu.timestamp);
-        static double LastUsedTimestamp = 0, StartTimeStamp = 0;
+        const double CurrentTimestamp = 1e-3 * static_cast<double>(imu.timestamp);
 
         if (!(CurrentTimestamp - StartTimeStamp - LastUsedTimestamp < 1) || !(CurrentTimestamp - StartTimeStamp - LastUsedTimestamp >0))
             StartTimeStamp = CurrentTimestamp - LastUsedTimestamp;
@@ -347,9 +368,9 @@ public:
 
         if (imu_acc->IMUAccEnable) {
             double msg_acc[9] = {0};
-            msg_acc[3*0 + 2] = static_cast<double>(st.imu.accelerometer[0]);
-            msg_acc[3*1 + 2] = static_cast<double>(st.imu.accelerometer[1]);
-            msg_acc[3*2 + 2] = static_cast<double>(st.imu.accelerometer[2]);
+            msg_acc[3*0 + 2] = static_cast<double>(imu.accelerometer[0]);
+            msg_acc[3*1 + 2] = static_cast<double>(imu.accelerometer[1]);
+            msg_acc[3*2 + 2] = static_cast<double>(imu.accelerometer[2]);
             
             if(Signal_Available_Check(msg_acc,0))
                 imu_acc->SensorDataHandle(msg_acc, UsedTimestamp);
@@ -368,9 +389,9 @@ public:
         msg_rpy[3*2] = yaw + legs_ori->yaw_correct;
 
         if(imu_gyro->IMUGyroEnable){
-            msg_rpy[3*0 + 1] = static_cast<double>(st.imu.gyroscope[0]);
-            msg_rpy[3*1 + 1] = static_cast<double>(st.imu.gyroscope[1]);
-            msg_rpy[3*2 + 1] = static_cast<double>(st.imu.gyroscope[2]);
+            msg_rpy[3*0 + 1] = static_cast<double>(imu.gyroscope[0]);
+            msg_rpy[3*1 + 1] = static_cast<double>(imu.gyroscope[1]);
+            msg_rpy[3*2 + 1] = static_cast<double>(imu.gyroscope[2]);
         }
 
         if(Signal_Available_Check(msg_rpy,1))
@@ -380,7 +401,7 @@ public:
             double joint[48];
 
             for (int i = 0; i < 16; ++i) {
-                const auto& m = st.motorState[i];
+                const auto& m = motorState[i];
                 joint[0 + i]  = static_cast<double>(m.q);
                 joint[16 + i] = static_cast<double>(m.dq);
                 joint[32 + i] = static_cast<double>(m.tauEst);
@@ -406,8 +427,8 @@ public:
         
         for(int i = 0; i < 9; ++i)
         {
-            proprio.PositionXYZ[i] = static_cast<float>(sensors[0]->EstimatedState[i]);
-            proprio.OrientationRPY[i] = static_cast<float>(sensors[1]->EstimatedState[i]);
+            proprio.PositionXYZ[i] = static_cast<float>(sensors[0]->EstimatedState99[i]);
+            proprio.OrientationRPY[i] = static_cast<float>(sensors[1]->EstimatedState99[i]);
         }
 
         for(int i = 0; i < 3; ++i)
@@ -442,23 +463,25 @@ private:
     std::shared_ptr<DataFusion::SensorLegsPos>    legs_pos;
     std::shared_ptr<DataFusion::SensorLegsOri>    legs_ori;
 
+    double LastUsedTimestamp = 0, StartTimeStamp = 0;
+    double LastSignal[3][48] = {0};
+    int LastSignalMaxIndex[3] = {9,9,48};
+    
     bool Signal_Available_Check(double Signal[], int type)
     {
-        static double last[3][48] = {0};
-        static int Number[3] = {9,9,48};
         bool diff = false;
 
-        for (int i = 0; i < Number[type]; ++i) {
+        for (int i = 0; i < LastSignalMaxIndex[type]; ++i) {
             if (!(Signal[i] < 9999.0 && Signal[i] > -9999.0))
                 return false;
-            if (Signal[i] != last[type][i])
+            if (Signal[i] != LastSignal[type][i])
                 diff = true;
         }
         if(!diff)
             return false;
         else
-            for (int i = 0; i < Number[type]; ++i)
-                last[type][i] = Signal[i];
+            for (int i = 0; i < LastSignalMaxIndex[type]; ++i)
+                LastSignal[type][i] = Signal[i];
         return true;
     }
 };

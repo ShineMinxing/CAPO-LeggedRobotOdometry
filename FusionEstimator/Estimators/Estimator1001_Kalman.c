@@ -68,7 +68,7 @@ void Estimator1001_Estimation(EstimatorPortN *estimator)
 {
     Estimator1001_Input(estimator);
 
-    if(fabs(estimator->StateUpdateTimestamp - estimator->ObservationTimestamp)>0.1)
+    if(fabs(estimator->StateUpdateTimestamp - estimator->ObservationTimestamp) > 0.1)
       estimator->StateUpdateTimestamp = estimator->ObservationTimestamp;
     else if(estimator->StateUpdateTimestamp != estimator->ObservationTimestamp)
     {
