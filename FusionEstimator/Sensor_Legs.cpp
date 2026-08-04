@@ -523,7 +523,7 @@ namespace DataFusion
 
     void SensorLegsPos::ClusterFootfallHeight(int LegNumber, double move_dir_z)
     {
-        int DecreaseSearch = 0, CheckIndex = MapHeightLeg[LegNumber], TempIntA = 0;
+        int DecreaseSearch = 0, CheckIndex = MapHeightLeg[LegNumber], TempIntA = 0, TempIntB = 0;
         double Zdifference = 0.0;
 
         if(MapHeightStore[MapHeightLeg[LegNumber]][0] - FootfallPositionRecord[LegNumber][2] > 0)
@@ -622,41 +622,45 @@ namespace DataFusion
             Zdifference = 0;
             MapHeightStoreCount++;
 
-            if(MapHeightStoreCount>=MapHeightStoreMax)
+            // 如果存储量超过了最大存储限度，就删除距离当前足点更远的最大/最小值记录
+            if(MapHeightStoreCount >= MapHeightStoreMax)
             {
+                // 判断离最大/最小值更远, 删除更远的最值
+                TempIntB = std::abs(MapHeightStore[MapHeightStoreMaxMinIndex[0]][0]-FootfallPositionRecord[LegNumber][2]) > std::abs(MapHeightStore[MapHeightStoreMaxMinIndex[1]][0]-FootfallPositionRecord[LegNumber][2]) ? 1 : 0;
+
                 // 存储次大次小的节点
-                TempIntA = (int)MapHeightStore[MapHeightStoreMaxMinIndex[1-DecreaseSearch]][3 + DecreaseSearch];
-                MapHeightStore[TempIntA][4 - DecreaseSearch] = -1;
+                TempIntA = (int)MapHeightStore[MapHeightStoreMaxMinIndex[1-TempIntB]][3 + TempIntB];
+                MapHeightStore[TempIntA][4 - TempIntB] = -1;
 
                 // 把末位节点放到最大最小的节点的数据空间
-                MapHeightStore[MapHeightStoreMaxMinIndex[1-DecreaseSearch]][0] = MapHeightStore[MapHeightStoreMax-1][0];
-                MapHeightStore[MapHeightStoreMaxMinIndex[1-DecreaseSearch]][1] = MapHeightStore[MapHeightStoreMax-1][1];
-                MapHeightStore[MapHeightStoreMaxMinIndex[1-DecreaseSearch]][2] = MapHeightStore[MapHeightStoreMax-1][2];
-                MapHeightStore[MapHeightStoreMaxMinIndex[1-DecreaseSearch]][3] = MapHeightStore[MapHeightStoreMax-1][3];
-                MapHeightStore[MapHeightStoreMaxMinIndex[1-DecreaseSearch]][4] = MapHeightStore[MapHeightStoreMax-1][4];
-                MapHeightStore[MapHeightStoreMaxMinIndex[1-DecreaseSearch]][5] = MapHeightStore[MapHeightStoreMax-1][5];
+                MapHeightStore[MapHeightStoreMaxMinIndex[1-TempIntB]][0] = MapHeightStore[MapHeightStoreMax-1][0];
+                MapHeightStore[MapHeightStoreMaxMinIndex[1-TempIntB]][1] = MapHeightStore[MapHeightStoreMax-1][1];
+                MapHeightStore[MapHeightStoreMaxMinIndex[1-TempIntB]][2] = MapHeightStore[MapHeightStoreMax-1][2];
+                MapHeightStore[MapHeightStoreMaxMinIndex[1-TempIntB]][3] = MapHeightStore[MapHeightStoreMax-1][3];
+                MapHeightStore[MapHeightStoreMaxMinIndex[1-TempIntB]][4] = MapHeightStore[MapHeightStoreMax-1][4];
+                MapHeightStore[MapHeightStoreMaxMinIndex[1-TempIntB]][5] = MapHeightStore[MapHeightStoreMax-1][5];
                 for(int Leg = 0; Leg < MAX_CONTACT_CHAIN; Leg++)
                     if(MapHeightLeg[Leg] == MapHeightStoreMax-1)
-                        MapHeightLeg[Leg] = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                        MapHeightLeg[Leg] = MapHeightStoreMaxMinIndex[1-TempIntB];
                 if(MapHeightStoreMaxMinIndex[0] == MapHeightStoreMax-1)
-                    MapHeightStoreMaxMinIndex[0] = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                    MapHeightStoreMaxMinIndex[0] = MapHeightStoreMaxMinIndex[1-TempIntB];
                 if(MapHeightStoreMaxMinIndex[1] == MapHeightStoreMax-1)
-                    MapHeightStoreMaxMinIndex[1] = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                    MapHeightStoreMaxMinIndex[1] = MapHeightStoreMaxMinIndex[1-TempIntB];
                 if(TempIntA == MapHeightStoreMax-1)
-                    TempIntA = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                    TempIntA = MapHeightStoreMaxMinIndex[1-TempIntB];
                 if(CheckIndex == MapHeightStoreMax - 1)
-                    CheckIndex = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                    CheckIndex = MapHeightStoreMaxMinIndex[1-TempIntB];
                 if(HitIndex == MapHeightStoreMax - 1)
-                    HitIndex = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                    HitIndex = MapHeightStoreMaxMinIndex[1-TempIntB];
 
                 //修改指向末位节点的节点记录
                 if(MapHeightStore[MapHeightStoreMax-1][3] != -1 && MapHeightStoreMaxMinIndex[1] != MapHeightStoreMax-1)
-                    MapHeightStore[int(MapHeightStore[MapHeightStoreMax-1][3])][4] = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                    MapHeightStore[int(MapHeightStore[MapHeightStoreMax-1][3])][4] = MapHeightStoreMaxMinIndex[1-TempIntB];
                 if(MapHeightStore[MapHeightStoreMax-1][4] != -1 && MapHeightStoreMaxMinIndex[0] != MapHeightStoreMax-1)
-                    MapHeightStore[int(MapHeightStore[MapHeightStoreMax-1][4])][3] = MapHeightStoreMaxMinIndex[1-DecreaseSearch];
+                    MapHeightStore[int(MapHeightStore[MapHeightStoreMax-1][4])][3] = MapHeightStoreMaxMinIndex[1-TempIntB];
 
                 //更新最大最小节点记录
-                MapHeightStoreMaxMinIndex[1-DecreaseSearch] = TempIntA;
+                MapHeightStoreMaxMinIndex[1-TempIntB] = TempIntA;
                 MapHeightStoreCount--;
             }
 
