@@ -126,7 +126,7 @@ void matrix_test()
 //初始化堆栈 
 VOID init_stack(_IN_OUT STACKS* S)
 {
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     if (S == NULL)
     {
         return;
@@ -198,7 +198,7 @@ MATRIX* creat_matrix(_IN INTEGER rows, _IN INTEGER columns, _OUT ERROR_ID* error
     if (rows <= 0 || columns <= 0 || S == NULL)
     {
         *errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", *errorID);
+        printf("Matrix calculation error code: %u\n", *errorID);
         return NULL;
     }
 
@@ -215,7 +215,7 @@ MATRIX* creat_matrix(_IN INTEGER rows, _IN INTEGER columns, _OUT ERROR_ID* error
         matrixElementNode = NULL;
 
         *errorID = _ERROR_FAILED_TO_ALLOCATE_HEAP_MEMORY;
-        printf("矩阵运算错误代码：%u\n", *errorID);
+        printf("Matrix calculation error code: %u\n", *errorID);
         return NULL;
     }
 
@@ -263,7 +263,7 @@ MATRIX* creat_multiple_matrix(_IN INTEGER rows, _IN INTEGER columns, _IN INTEGER
     if (rows <= 0 || columns <= 0 || count <= 0 || S == NULL)
     {
         *errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", *errorID);
+        printf("Matrix calculation error code: %u\n", *errorID);
         return NULL;
     }
 
@@ -277,7 +277,7 @@ MATRIX* creat_multiple_matrix(_IN INTEGER rows, _IN INTEGER columns, _IN INTEGER
         matrixNode = NULL;
 
         *errorID = _ERROR_FAILED_TO_ALLOCATE_HEAP_MEMORY;
-        printf("矩阵运算错误代码：%u\n", *errorID);
+        printf("Matrix calculation error code: %u\n", *errorID);
         return NULL;
     }
 
@@ -292,7 +292,7 @@ MATRIX* creat_multiple_matrix(_IN INTEGER rows, _IN INTEGER columns, _IN INTEGER
             matrixNode = NULL;
 
             *errorID = _ERROR_FAILED_TO_ALLOCATE_HEAP_MEMORY;
-            printf("矩阵运算错误代码：%u\n", *errorID);
+            printf("Matrix calculation error code: %u\n", *errorID);
             return NULL;
         }
         matrix[i] = *p;
@@ -318,7 +318,7 @@ MATRIX* creat_zero_matrix(_IN INTEGER rows, _IN INTEGER columns, _OUT ERROR_ID* 
     if (rows <= 0 || columns <= 0 || S == NULL)
     {
         *errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", *errorID);
+        printf("Matrix calculation error code: %u\n", *errorID);
         return NULL;
     }
 
@@ -345,7 +345,7 @@ MATRIX* creat_eye_matrix(_IN INTEGER n, _OUT ERROR_ID* errorID, _OUT STACKS* S)
     if (n <= 0|| S == NULL)
     {
         *errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", *errorID);
+        printf("Matrix calculation error code: %u\n", *errorID);
         return NULL;
     }
 
@@ -375,7 +375,7 @@ MATRIX* creat_diag_matrix(_IN REAL *X, _IN INDEX L, _OUT ERROR_ID* errorID, _OUT
     if (S == NULL)
     {
         *errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", *errorID);
+        printf("Matrix calculation error code: %u\n", *errorID);
         return NULL;
     }
 
@@ -454,14 +454,14 @@ ERROR_ID matrix_add(_IN MATRIX* A, _IN MATRIX* B, _OUT MATRIX* C)
     if (A == NULL || B == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != B->rows || A->rows != C->rows || B->rows != C->rows || A->columns != B->columns || A->columns != C->columns || B->columns != C->columns)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -487,14 +487,14 @@ ERROR_ID matrix_subtraction(_IN MATRIX* A, _IN MATRIX* B, _OUT MATRIX* C)
     if (A == NULL || B == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != B->rows || A->rows != C->rows || B->rows != C->rows || A->columns != B->columns || A->columns != C->columns || B->columns != C->columns)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -519,14 +519,14 @@ ERROR_ID matrix_numbermulti(_IN REAL A, _IN MATRIX* B, _OUT MATRIX* C)
     if (B == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (B->rows != C->rows || B->columns != C->columns)
     {
         errorID = _ERROR_MATRIX_MULTIPLICATION;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -550,14 +550,14 @@ ERROR_ID matrix_multiplication(_IN MATRIX* A, _IN MATRIX* B, _OUT MATRIX* C)
     if (A == NULL || B == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->columns != B->rows || A->rows != C->rows || B->columns != C->columns)
     {
         errorID = _ERROR_MATRIX_MULTIPLICATION;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -585,14 +585,14 @@ ERROR_ID matrix_vector2matrix(_IN MATRIX* A, _IN MATRIX* B, _OUT MATRIX* C)
     if (A == NULL || B == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != C->rows || B->columns != C->columns || A->columns != 1 || B->rows != 1)
     {
         errorID = _ERROR_MATRIX_MULTIPLICATION;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -615,14 +615,14 @@ ERROR_ID matrix_rowmatching(_IN MATRIX* A, _IN MATRIX* B, _OUT MATRIX* C)
     if (A == NULL || B == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != B->rows || A->rows != C->rows || A->columns + B->columns != C->columns)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
     
@@ -649,14 +649,14 @@ ERROR_ID matrix_columnmatching(_IN MATRIX* A, _IN MATRIX* B, _OUT MATRIX* C)
     if (A == NULL || B == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->columns != B->columns || A->columns != C->columns || A->rows + B->rows != C->rows)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
     
@@ -686,14 +686,14 @@ ERROR_ID matrix_extraction(_IN MATRIX* A, _OUT MATRIX* C, _IN INDEX Rs, _IN INDE
     if (A == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows < C->rows + Rs || A->columns < C->columns + Cs)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
     
@@ -715,14 +715,14 @@ ERROR_ID matrix_valuation(_IN MATRIX* A,  _IN MATRIX* C, _IN INDEX Rs, _IN INDEX
     if (A == NULL || C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows + Rs > C->rows || A->columns + Cs > C->columns)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
     
@@ -745,14 +745,14 @@ ERROR_ID matrix_det(_IN MATRIX* A, _OUT MATRIX* detA)
     if (A == NULL || detA == NULL || A->p == NULL || detA->p == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns || detA->rows != 1 || detA->columns != 1)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -760,7 +760,7 @@ ERROR_ID matrix_det(_IN MATRIX* A, _OUT MATRIX* detA)
     if (A->rows > 5)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -822,14 +822,14 @@ ERROR_ID matrix_inverse(_IN MATRIX* A, _OUT MATRIX* invA)
     if (A == NULL || invA == NULL || A->p == NULL || invA->p == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -837,7 +837,7 @@ ERROR_ID matrix_inverse(_IN MATRIX* A, _OUT MATRIX* invA)
     if (invA->rows != n || invA->columns != n)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -871,14 +871,14 @@ ERROR_ID matrix_transpose(_IN MATRIX* A, _OUT MATRIX* transposeA)
     if (A == NULL || transposeA == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != transposeA->columns || A->columns != transposeA->rows)
     {
         errorID = _ERROR_MATRIX_TRANSPOSE_FAILED;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -901,14 +901,14 @@ ERROR_ID matrix_trace(_IN MATRIX* A, _OUT REAL* trace)
     if (A == NULL || trace == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -930,14 +930,14 @@ ERROR_ID Cholesky_decomposition(_IN MATRIX* A, _OUT MATRIX* L)
     if (A == NULL || L == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
     }
     n = A->rows;
     memcpy(L->p, A->p, n * n * sizeof(REAL));
@@ -972,14 +972,14 @@ ERROR_ID lup_decomposition(_IN MATRIX* A, _OUT MATRIX* L, _OUT MATRIX* U, _OUT M
     if (A == NULL || L == NULL || U == NULL || P == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1062,14 +1062,14 @@ static ERROR_ID solve_matrix_equation_by_lup_decomposition_core(_IN MATRIX* A, _
     if (A == NULL || B == NULL || L == NULL || U == NULL || y == NULL || A->p == NULL || B->p == NULL || L->p == NULL || U->p == NULL || y->p == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns || B->rows != A->rows)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1079,7 +1079,7 @@ static ERROR_ID solve_matrix_equation_by_lup_decomposition_core(_IN MATRIX* A, _
     if (L->rows != n || L->columns != n || U->rows != n || U->columns != n || y->rows != n || y->columns != m)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1204,14 +1204,14 @@ ERROR_ID solve_matrix_equation_by_lup_decomposition(_IN MATRIX* A, _IN_OUT MATRI
     if (A == NULL || B == NULL || A->p == NULL || B->p == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns || B->rows != A->rows)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1243,21 +1243,21 @@ ERROR_ID matrix_inverse_noalloc(_IN MATRIX* A, _OUT MATRIX* invA, _IN_OUT MATRIX
     if (A == NULL || invA == NULL || L == NULL || U == NULL || y == NULL || A->p == NULL || invA->p == NULL || L->p == NULL || U->p == NULL || y->p == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->p == invA->p)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1266,7 +1266,7 @@ ERROR_ID matrix_inverse_noalloc(_IN MATRIX* A, _OUT MATRIX* invA, _IN_OUT MATRIX
     if (invA->rows != n || invA->columns != n || L->rows != n || L->columns != n || U->rows != n || U->columns != n || y->rows != n || y->columns != n)
     {
         errorID = _ERROR_MATRIX_ROWS_OR_COLUMNS_NOT_EQUAL;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1291,21 +1291,21 @@ ERROR_ID EigenValueVecter(_IN MATRIX* A, _OUT MATRIX* B, _OUT MATRIX* C)
     if (A == NULL || B == NULL || C == NULL || A->p == NULL || B->p == NULL || C->p == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != B->rows || B->rows != C->rows || C->columns != 1)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
     if (A->rows != A->columns || B->rows != B->columns)
     {
         errorID = _ERROR_MATRIX_MUST_BE_SQUARE;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1317,7 +1317,7 @@ ERROR_ID EigenValueVecter(_IN MATRIX* A, _OUT MATRIX* B, _OUT MATRIX* C)
     {
         Matrix_Free(array, n, n);
         free(eig);
-        printf("error :申请数组内存空间失败\n");
+        printf("error: matrix malloc fault\n");
         return _ERROR_FAILED_TO_ALLOCATE_HEAP_MEMORY;
     }
 
@@ -1328,7 +1328,7 @@ ERROR_ID EigenValueVecter(_IN MATRIX* A, _OUT MATRIX* B, _OUT MATRIX* C)
         {
             Matrix_Free(array, n, n);
             free(eig);
-            printf("error :申请数组子内存空间失败\n");
+            printf("error: submatrix malloc fault\n");
             return _ERROR_FAILED_TO_ALLOCATE_HEAP_MEMORY;
         }
     }
@@ -1349,7 +1349,7 @@ ERROR_ID EigenValueVecter(_IN MATRIX* A, _OUT MATRIX* B, _OUT MATRIX* C)
         return _ERROR_CREATE_MATRIX_FAILED;
     }
 
-    printf("特征矩阵:\n");
+    printf("Eigen matrix:\n");
     for (i = 0; i < n; i++)
     {
         for (j = 0; j < n; j++)
@@ -1360,7 +1360,7 @@ ERROR_ID EigenValueVecter(_IN MATRIX* A, _OUT MATRIX* B, _OUT MATRIX* C)
         printf("\n");
     }
 
-    printf("特征值向量:\n");
+    printf("Eigen vector:\n");
     for (i = 0; i < n; i++)
     {
         C->p[i] = eig[i];
@@ -1458,7 +1458,7 @@ double** Matrix_Jac_Eig(double **array, int n, double *eig)
 
     if (flag == 1)
     {
-        printf("error in Matrix_Eig: 输入并非是对称矩阵:\n");
+        printf("Error in Matrix_Eig: the input is not symmetric:\n");
         Matrix_Free(temp_mat, n, n);
         Matrix_Free(result_temp, n, n);
         return NULL;
@@ -1695,7 +1695,7 @@ ERROR_ID array_vector_cross(_IN REAL array_A[3], _IN REAL array_B[3], _OUT REAL 
     if (array_A == NULL || array_B == NULL || array_C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1727,7 +1727,7 @@ ERROR_ID array_quaternion_check(_IN REAL array_Q[4], _OUT FLAG* IsOK)
     if (array_Q == NULL || IsOK == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1750,7 +1750,7 @@ ERROR_ID array_quaternion_conjugate(_IN REAL array_Q[4], _OUT REAL array_Qc[4])
     if (array_Q == NULL || array_Qc == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1778,7 +1778,7 @@ ERROR_ID array_quaternion_multiplication(_IN REAL array_A[4], _IN REAL array_B[4
     if (array_A == NULL || array_B == NULL || array_C == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1816,7 +1816,7 @@ ERROR_ID array_quaternion_normalize(_IN REAL array_Q[4], _OUT REAL array_Qn[4])
     if (array_Q == NULL || array_Qn == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1835,7 +1835,7 @@ ERROR_ID array_quaternion_normalize(_IN REAL array_Q[4], _OUT REAL array_Qn[4])
         array_Qn[3] = 0.0;
 
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1861,7 +1861,7 @@ ERROR_ID array_quaternion_rotate_vector(_IN REAL array_Q[4], _IN REAL array_V[3]
     if (array_Q == NULL || array_V == NULL || array_Vout == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1900,7 +1900,7 @@ ERROR_ID array_eulerZYX_to_quaternion(_IN REAL array_EulerZYX[3], _OUT REAL arra
     if (array_EulerZYX == NULL || array_Q == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1939,7 +1939,7 @@ ERROR_ID array_quaternion_to_eulerZYX(_IN REAL array_Q[4], _OUT REAL array_Euler
     if (array_Q == NULL || array_EulerZYX == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -1984,7 +1984,7 @@ ERROR_ID array_angle_wrap(_IN REAL array_A[], _OUT REAL array_B[], _IN INTEGER l
     if (array_A == NULL || array_B == NULL || length <= 0)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -2027,7 +2027,7 @@ ERROR_ID array_angle_unwrap(_IN_OUT REAL array_A[], _IN_OUT REAL array_Last[], _
     if (array_A == NULL || array_Last == NULL || array_Turn == NULL || length <= 0)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -2078,7 +2078,7 @@ ERROR_ID array_3x3_inverse(_IN REAL array_A[3][3], _OUT REAL array_invA[3][3])
     if (array_A == NULL || array_invA == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -2111,7 +2111,7 @@ ERROR_ID array_3x3_inverse(_IN REAL array_A[3][3], _OUT REAL array_invA[3][3])
     if (fabs(det) < 1.0e-12)
     {
         errorID = _ERROR_MATRIX_EQUATION_HAS_NO_SOLUTIONS;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 
@@ -2154,7 +2154,7 @@ ERROR_ID array_3x3_multiply_vector(_IN REAL array_A[3][3], _IN REAL array_V[3], 
     if (array_A == NULL || array_V == NULL || array_B == NULL)
     {
         errorID = _ERROR_INPUT_PARAMETERS_ERROR;
-        printf("矩阵运算错误代码：%u\n", errorID);
+        printf("Matrix calculation error code: %u\n", errorID);
         return errorID;
     }
 

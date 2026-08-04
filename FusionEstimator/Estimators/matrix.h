@@ -25,7 +25,9 @@
 #define MAX(x,y) (x)>(y)?(x):(y)
 #define MIN(x,y) (x)<(y)?(x):(y)
 
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #ifndef PI
 #define PI 3.14159265358979323846
