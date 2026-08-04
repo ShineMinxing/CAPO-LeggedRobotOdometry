@@ -118,7 +118,7 @@ WordSize = 25;
 PlotFusionEstimator = @plot_fusion_estimator_logs_local;
 PlotDogMotion = @plot_dog_motion_local;
 
-PlotFusionEstimator()
+% PlotFusionEstimator()
 % PlotDogMotion()
 
 

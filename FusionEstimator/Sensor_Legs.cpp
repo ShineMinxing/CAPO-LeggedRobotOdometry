@@ -7,7 +7,7 @@ namespace DataFusion
         int i, LegNumber;
         ObservationTime = Time;
         
-        for(i = 0; i < StateSpaceModel->Nz; i++)
+        for(i = 0; i < StateSpaceModel->Nz99; i++)
             Observation[i] = 0;
 
         for(LegNumber = 0; LegNumber< ContactChainNum; LegNumber++)
@@ -19,7 +19,7 @@ namespace DataFusion
         {
             for(i = 0; i < 9; i++)
             {
-                StateSpaceModel->Matrix_H[i * StateSpaceModel->Nx + i] = 0;
+                StateSpaceModel->Matrix_H99[i * StateSpaceModel->Nx99 + i] = 0;
             }
 
             FootFallPositionRecordFun(Message);
@@ -31,14 +31,14 @@ namespace DataFusion
             if(JointsXYZEnable){
                 for(i = 0; i < 3; i++)
                 {
-                    StateSpaceModel->Matrix_H[(3 * i + 0) * StateSpaceModel->Nx + (3 * i + 0)] = 1;
+                    StateSpaceModel->Matrix_H99[(3 * i + 0) * StateSpaceModel->Nx99 + (3 * i + 0)] = 1;
                 }
             }
             if(JointsXYZVelocityEnable){
                 for(i = 0; i < 3; i++)
                 {
-                    StateSpaceModel->Matrix_H[(3 * i + 1) * StateSpaceModel->Nx + (3 * i + 1)] = 1;
-                    StateSpaceModel->Matrix_H[(3 * i + 2) * StateSpaceModel->Nx + (3 * i + 2)] = 1;
+                    StateSpaceModel->Matrix_H99[(3 * i + 1) * StateSpaceModel->Nx99 + (3 * i + 1)] = 1;
+                    StateSpaceModel->Matrix_H99[(3 * i + 2) * StateSpaceModel->Nx99 + (3 * i + 2)] = 1;
                 }
             }
             StateSpaceModel_Go2_EstimatorPort(Observation, ObservationTime, StateSpaceModel);
@@ -49,8 +49,8 @@ namespace DataFusion
                     p_w[LegNumber][0] = FootfallPositionRecord[LegNumber][0];
                     p_w[LegNumber][1] = FootfallPositionRecord[LegNumber][1];
                 } else {
-                    p_w[LegNumber][0] = StateSpaceModel->EstimatedState[0] + JointsBodyWFPosition[LegNumber][FootNodeIndex][0];
-                    p_w[LegNumber][1] = StateSpaceModel->EstimatedState[3] + JointsBodyWFPosition[LegNumber][FootNodeIndex][1];
+                    p_w[LegNumber][0] = StateSpaceModel->EstimatedState99[0] + JointsBodyWFPosition[LegNumber][FootNodeIndex][0];
+                    p_w[LegNumber][1] = StateSpaceModel->EstimatedState99[3] + JointsBodyWFPosition[LegNumber][FootNodeIndex][1];
                 }
             }
 
@@ -90,7 +90,7 @@ namespace DataFusion
 
     void SensorLegsPos::LoadedWeightCheck(double* Message, double Time) 
     {
-        const bool stand_on_ground = (FootfallProbability[0] + FootfallProbability[1] + FootfallProbability[2] + FootfallProbability[3]) > 2.5 && (std::abs(StateSpaceModel->EstimatedState[1]) + std::abs(StateSpaceModel->EstimatedState[4]) +std::abs(StateSpaceModel->EstimatedState[7])) < 0.05;
+        const bool stand_on_ground = (FootfallProbability[0] + FootfallProbability[1] + FootfallProbability[2] + FootfallProbability[3]) > 2.5 && (std::abs(StateSpaceModel->EstimatedState99[1]) + std::abs(StateSpaceModel->EstimatedState99[4]) +std::abs(StateSpaceModel->EstimatedState99[7])) < 0.05;
 
         if (stand_on_ground) {
             if (!WeightStableStand || Time < WeightStableTimestamp) {
@@ -354,8 +354,8 @@ namespace DataFusion
             {
                 FootfallPositionRecordIsInitiated[LegNumber] = true;
                 FootLanding[LegNumber]= false;
-                FootfallPositionRecord[LegNumber][0] = StateSpaceModel->EstimatedState[0] + JointsBodyWFPosition[LegNumber][FootNodeIndex][0];
-                FootfallPositionRecord[LegNumber][1] = StateSpaceModel->EstimatedState[3] + JointsBodyWFPosition[LegNumber][FootNodeIndex][1];
+                FootfallPositionRecord[LegNumber][0] = StateSpaceModel->EstimatedState99[0] + JointsBodyWFPosition[LegNumber][FootNodeIndex][0];
+                FootfallPositionRecord[LegNumber][1] = StateSpaceModel->EstimatedState99[3] + JointsBodyWFPosition[LegNumber][FootNodeIndex][1];
                 FootfallPositionRecord[LegNumber][2] = 0;
                 FootfallPositionRecord[LegNumber][3] = ObservationTime;
                 ClusterFootfallHeight(LegNumber, move_dir_z);
@@ -376,9 +376,9 @@ namespace DataFusion
             else if(FootLanding[LegNumber])
             {
                 FootLanding[LegNumber]= false;
-                FootfallPositionRecord[LegNumber][0] = StateSpaceModel->EstimatedState[0] + JointsBodyWFPosition[LegNumber][FootNodeIndex][0];
-                FootfallPositionRecord[LegNumber][1] = StateSpaceModel->EstimatedState[3] + JointsBodyWFPosition[LegNumber][FootNodeIndex][1];
-                FootfallPositionRecord[LegNumber][2] = StateSpaceModel->EstimatedState[6] + JointsBodyWFPosition[LegNumber][FootNodeIndex][2];
+                FootfallPositionRecord[LegNumber][0] = StateSpaceModel->EstimatedState99[0] + JointsBodyWFPosition[LegNumber][FootNodeIndex][0];
+                FootfallPositionRecord[LegNumber][1] = StateSpaceModel->EstimatedState99[3] + JointsBodyWFPosition[LegNumber][FootNodeIndex][1];
+                FootfallPositionRecord[LegNumber][2] = StateSpaceModel->EstimatedState99[6] + JointsBodyWFPosition[LegNumber][FootNodeIndex][2];
                 FootfallPositionRecord[LegNumber][3] = ObservationTime;
                 
                 if (LegChains_[LegNumber].wheel_q_index >= 0)
@@ -531,13 +531,13 @@ namespace DataFusion
         else
             DecreaseSearch = 0;
 
-        //从上次足点高度记录开始，向上或下搜索，直到边界或越过当前足高度
+        // 从上次足点高度记录开始，向上或下搜索，直到边界或越过当前足高度
         while(MapHeightStore[CheckIndex][3+DecreaseSearch] != -1)
         {
-            //删除不是边界的过期节点
+            // 删除不是边界的过期节点
             if(std::abs(ObservationTime-MapHeightStore[CheckIndex][2]) > Data_Fading_Time && MapHeightStore[CheckIndex][4-DecreaseSearch] != -1)
             {
-                //如果过期节点是一个在用足点记录，就不删除
+                // 如果过期节点是一个在用足点记录，就不删除
                 bool HeightRecordNotUsing = true;
                 for(int Leg = 0; Leg < MAX_CONTACT_CHAIN; Leg++)
                     if(MapHeightLeg[Leg] == CheckIndex)
@@ -557,7 +557,7 @@ namespace DataFusion
                         MapHeightStore[CheckIndex][4] = MapHeightStore[MapHeightStoreCount][4];
                         MapHeightStore[CheckIndex][5] = MapHeightStore[MapHeightStoreCount][5];
                         
-                        //如果搬移的末位节点是足的记录点，就足记录重新指向
+                        // 如果搬移的末位节点是足的记录点，就足记录重新指向
                         for(int Leg = 0; Leg < MAX_CONTACT_CHAIN; Leg++)
                             if(MapHeightLeg[Leg] == MapHeightStoreCount)
                                 MapHeightLeg[Leg] = CheckIndex;
@@ -611,7 +611,7 @@ namespace DataFusion
                 Zdifference = 0;
             else
             {
-                //根据新落足点迭代历史高度记录
+                // 根据新落足点迭代历史高度记录
                 // MapHeightStore[HitIndex][0] = (MapHeightStore[HitIndex][0] * MapHeightStore[HitIndex][1] + FootfallPositionRecord[LegNumber][2]) / (MapHeightStore[HitIndex][1] + 1);
                 Zdifference = FootfallPositionRecord[LegNumber][2] - MapHeightStore[HitIndex][0];
             }
@@ -653,13 +653,13 @@ namespace DataFusion
                 if(HitIndex == MapHeightStoreMax - 1)
                     HitIndex = MapHeightStoreMaxMinIndex[1-TempIntB];
 
-                //修改指向末位节点的节点记录
+                // 修改指向末位节点的节点记录
                 if(MapHeightStore[MapHeightStoreMax-1][3] != -1 && MapHeightStoreMaxMinIndex[1] != MapHeightStoreMax-1)
                     MapHeightStore[int(MapHeightStore[MapHeightStoreMax-1][3])][4] = MapHeightStoreMaxMinIndex[1-TempIntB];
                 if(MapHeightStore[MapHeightStoreMax-1][4] != -1 && MapHeightStoreMaxMinIndex[0] != MapHeightStoreMax-1)
                     MapHeightStore[int(MapHeightStore[MapHeightStoreMax-1][4])][3] = MapHeightStoreMaxMinIndex[1-TempIntB];
 
-                //更新最大最小节点记录
+                // 更新最大最小节点记录
                 MapHeightStoreMaxMinIndex[1-TempIntB] = TempIntA;
                 MapHeightStoreCount--;
             }
@@ -853,19 +853,19 @@ namespace DataFusion
 
         const double inertia = 0.4 * legs_pos_ref_->TimelyWeight * 0.5 * 0.5 + 0.01;
 
-        for (i = 0; i < StateSpaceModel->Nz; ++i)
+        for (i = 0; i < StateSpaceModel->Nz99; ++i)
             Observation[i] = 0.0;
 
         for (i = 0; i < 9; ++i)
-            StateSpaceModel->Matrix_H[i * StateSpaceModel->Nx + i] = 0.0;
+            StateSpaceModel->Matrix_H99[i * StateSpaceModel->Nx99 + i] = 0.0;
 
         Observation[2] = tau_w[0] / inertia;
         Observation[5] = tau_w[1] / inertia;
         Observation[8] = tau_w[2] / inertia;
 
-        StateSpaceModel->Matrix_H[2 * StateSpaceModel->Nx + 2] = 1.0;
-        StateSpaceModel->Matrix_H[5 * StateSpaceModel->Nx + 5] = 1.0;
-        StateSpaceModel->Matrix_H[8 * StateSpaceModel->Nx + 8] = 1.0;
+        StateSpaceModel->Matrix_H99[2 * StateSpaceModel->Nx99 + 2] = 1.0;
+        StateSpaceModel->Matrix_H99[5 * StateSpaceModel->Nx99 + 5] = 1.0;
+        StateSpaceModel->Matrix_H99[8 * StateSpaceModel->Nx99 + 8] = 1.0;
 
         StateSpaceModel_Go2_EstimatorPort(Observation, Time, StateSpaceModel);
     }
@@ -892,7 +892,7 @@ namespace DataFusion
         }
 
         double q_yaw_inv[4];
-        double array_EulerZYX[3] = {0.0, 0.0, - StateSpaceModel->EstimatedState[6]};
+        double array_EulerZYX[3] = {0.0, 0.0, - StateSpaceModel->EstimatedState99[6]};
         array_eulerZYX_to_quaternion(array_EulerZYX, q_yaw_inv);
 
         double sx = 0.0, sy = 0.0;
@@ -931,7 +931,7 @@ namespace DataFusion
 
         if (sx != 0.0 || sy != 0.0) {
             const double yaw_est = std::atan2(sy, sx);
-            double err = yaw_est - StateSpaceModel->EstimatedState[6];
+            double err = yaw_est - StateSpaceModel->EstimatedState99[6];
             array_angle_wrap(&err, &err, 1);
             yaw_correct += legori_current_weight * err;
             UpdateEst_Quaternion();
@@ -956,19 +956,19 @@ namespace DataFusion
                 impact_y += legs_pos_ref_->JointsBodyWFEffort[LegNumber][legs_pos_ref_->FootNodeIndex][1];
             }
 
-            impact_x = legs_pos_ref_->StateSpaceModel->EstimatedState[2] + impact_x / legs_pos_ref_->TimelyWeight;
-            impact_y = legs_pos_ref_->StateSpaceModel->EstimatedState[5] + impact_y / legs_pos_ref_->TimelyWeight;
+            impact_x = legs_pos_ref_->StateSpaceModel->EstimatedState99[2] + impact_x / legs_pos_ref_->TimelyWeight;
+            impact_y = legs_pos_ref_->StateSpaceModel->EstimatedState99[5] + impact_y / legs_pos_ref_->TimelyWeight;
 
             const double impact_norm = std::hypot(impact_x, impact_y);
-            const double tilt_factor = std::fmax(((std::fabs(StateSpaceModel->EstimatedState[0]) + std::fabs(StateSpaceModel->EstimatedState[3])) * 180.0 / M_PI - 10.0) / 10.0 + 1.0, 1.0);
+            const double tilt_factor = std::fmax(((std::fabs(StateSpaceModel->EstimatedState99[0]) + std::fabs(StateSpaceModel->EstimatedState99[3])) * 180.0 / M_PI - 10.0) / 10.0 + 1.0, 1.0);
             const double angle_error = std::atan2(std::fabs(CollisionVelMean_Y * impact_x - CollisionVelMean_X * impact_y), -CollisionVelMean_X * impact_x - CollisionVelMean_Y * impact_y);
-            const double angle_allow = std::fmin(30.0 + 5.0 * std::fabs(StateSpaceModel->EstimatedState[8]), 75.0) * M_PI / 180.0;
+            const double angle_allow = std::fmin(30.0 + 5.0 * std::fabs(StateSpaceModel->EstimatedState99[8]), 75.0) * M_PI / 180.0;
 
             // 速度大于0.3m/s，且加速度大于机器狗倾斜度因子*3.0m/s/s的基准，且加速度方向与速度方向夹角小于允许角度(30~75度)，且距离上次碰撞时间大于3s，则判定为碰撞
             if (velocity_norm >= 0.3 && velocity_xy > 1e-9 && impact_norm > 3.0 * tilt_factor && angle_error <= angle_allow && Time - CollisionLastTimestamp >= 3.0)
             {
-                const double cy = std::cos(StateSpaceModel->EstimatedState[6]);
-                const double sy = std::sin(StateSpaceModel->EstimatedState[6]);
+                const double cy = std::cos(StateSpaceModel->EstimatedState99[6]);
+                const double sy = std::sin(StateSpaceModel->EstimatedState99[6]);
                 const double contact_x = -(cy * impact_x + sy * impact_y) / impact_norm;
                 const double contact_y = -(-sy * impact_x + cy * impact_y) / impact_norm;
                 const double face_cos = std::cos(15.0 * M_PI / 180.0); // 15度以内，视为面碰撞而非腿碰撞
@@ -998,13 +998,13 @@ namespace DataFusion
         else
             CollisionHistoryCount++;
 
-        CollisionVelMean_X += (legs_pos_ref_->StateSpaceModel->EstimatedState[1] - CollisionVelHistery[CollisionHistoryIndex][0]) * 0.1;
-        CollisionVelMean_Y += (legs_pos_ref_->StateSpaceModel->EstimatedState[4] - CollisionVelHistery[CollisionHistoryIndex][1]) * 0.1;
-        CollisionVelMean_Yaw += (StateSpaceModel->EstimatedState[7] - CollisionVelHistery[CollisionHistoryIndex][2]) * 0.1;
+        CollisionVelMean_X += (legs_pos_ref_->StateSpaceModel->EstimatedState99[1] - CollisionVelHistery[CollisionHistoryIndex][0]) * 0.1;
+        CollisionVelMean_Y += (legs_pos_ref_->StateSpaceModel->EstimatedState99[4] - CollisionVelHistery[CollisionHistoryIndex][1]) * 0.1;
+        CollisionVelMean_Yaw += (StateSpaceModel->EstimatedState99[7] - CollisionVelHistery[CollisionHistoryIndex][2]) * 0.1;
 
-        CollisionVelHistery[CollisionHistoryIndex][0] = legs_pos_ref_->StateSpaceModel->EstimatedState[1];
-        CollisionVelHistery[CollisionHistoryIndex][1] = legs_pos_ref_->StateSpaceModel->EstimatedState[4];
-        CollisionVelHistery[CollisionHistoryIndex][2] = StateSpaceModel->EstimatedState[7];
+        CollisionVelHistery[CollisionHistoryIndex][0] = legs_pos_ref_->StateSpaceModel->EstimatedState99[1];
+        CollisionVelHistery[CollisionHistoryIndex][1] = legs_pos_ref_->StateSpaceModel->EstimatedState99[4];
+        CollisionVelHistery[CollisionHistoryIndex][2] = StateSpaceModel->EstimatedState99[7];
 
         CollisionHistoryIndex = (CollisionHistoryIndex + 1) % 10;
 

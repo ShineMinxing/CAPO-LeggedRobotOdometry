@@ -97,6 +97,13 @@ typedef struct EstimatorPortN {
     int    *Int_Par;
     double *Double_Par;
 
+    int Nx99;
+    int Nz99;
+    double *EstimatedState99;
+    double *CurrentObservation99;
+    double *Matrix_H99;
+    double *Matrix_P99;
+
     void (*StateTransitionEquation)(double *In_State, double *Out_State, struct EstimatorPortN *estimator);
     void (*ObservationEquation)(double *In_State, double *Out_Observation, struct EstimatorPortN *estimator);
     void (*PredictionEquation)(double *In_State, double *Out_PredictedState, struct EstimatorPortN *estimator);

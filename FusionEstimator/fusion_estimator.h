@@ -270,9 +270,9 @@ public:
             status[IndexStatusOK] = status[IndexStatusOK] + 20;
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
-            sensors[0]->EstimatedState[0] = 0;
-            sensors[0]->EstimatedState[3] = 0;
-            legs_ori->yaw_correct = legs_ori->yaw_correct - sensors[1]->EstimatedState[6];
+            sensors[0]->EstimatedState99[0] = 0;
+            sensors[0]->EstimatedState99[3] = 0;
+            legs_ori->yaw_correct = legs_ori->yaw_correct - sensors[1]->EstimatedState99[6];
             legs_pos->FootfallPositionRecordIsInitiated[0] = false;
             legs_pos->FootfallPositionRecordIsInitiated[1] = false;
             legs_pos->FootfallPositionRecordIsInitiated[2] = false;
@@ -426,8 +426,8 @@ public:
         
         for(int i = 0; i < 9; ++i)
         {
-            proprio.PositionXYZ[i] = static_cast<float>(sensors[0]->EstimatedState[i]);
-            proprio.OrientationRPY[i] = static_cast<float>(sensors[1]->EstimatedState[i]);
+            proprio.PositionXYZ[i] = static_cast<float>(sensors[0]->EstimatedState99[i]);
+            proprio.OrientationRPY[i] = static_cast<float>(sensors[1]->EstimatedState99[i]);
         }
 
         for(int i = 0; i < 3; ++i)

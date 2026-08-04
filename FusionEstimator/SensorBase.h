@@ -26,9 +26,6 @@ namespace DataFusion
       Sensors(EstimatorPortN* StateSpaceModel_)
       {        
         StateSpaceModel = StateSpaceModel_;
-
-        for(int i = 0; i < StateSpaceModel->Nz; i++)
-          StateSpaceModel->Matrix_R[i*StateSpaceModel->Nz+i] = R_diag[i];
       }
 
       virtual ~Sensors() = default;  
@@ -47,7 +44,6 @@ namespace DataFusion
 
       double Observation[9] = {0};
       double ObservationTime = 0;
-      double R_diag[9] = {1,1,1,1,1,1,1,1,1};
 
       void ObservationCorrect_Position();
       void ObservationCorrect_Velocity();

@@ -8,9 +8,9 @@ namespace DataFusion
     void Sensors::UpdateEst_Quaternion()
     {
         double array_EulerZYX[3] = {
-            StateSpaceModel->EstimatedState[0],
-            StateSpaceModel->EstimatedState[3],
-            StateSpaceModel->EstimatedState[6]
+            StateSpaceModel->EstimatedState99[0],
+            StateSpaceModel->EstimatedState99[3],
+            StateSpaceModel->EstimatedState99[6]
         };
 
         array_eulerZYX_to_quaternion(array_EulerZYX, Est_Quaternion);
