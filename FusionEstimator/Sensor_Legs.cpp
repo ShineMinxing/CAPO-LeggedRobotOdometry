@@ -225,45 +225,95 @@ namespace DataFusion
         FootBodyVel_WF[LegNumber][1] = 0.0;
         FootBodyVel_WF[LegNumber][2] = 0.0;
 
-        double Jtau[3];
-        double JJT[3][3];
-        double JJT_inv[3][3];
-
-        for (int target = 1; target <= joint_num; ++target)
+        // 第一个关节电机对第二个关节原点的等效力
         {
-            Jtau[0] = Jtau[1] = Jtau[2] = 0.0;
+            double rx = joint_org[1][0] - joint_org[0][0];
+            double ry = joint_org[1][1] - joint_org[0][1];
+            double rz = joint_org[1][2] - joint_org[0][2];
 
-            for (int r = 0; r < 3; ++r)
-                for (int c = 0; c < 3; ++c)
-                    JJT[r][c] = 0.0;
+            double Jx = joint_axis[0][1] * rz - joint_axis[0][2] * ry;
+            double Jy = joint_axis[0][2] * rx - joint_axis[0][0] * rz;
+            double Jz = joint_axis[0][0] * ry - joint_axis[0][1] * rx;
+            double J_norm2 = Jx * Jx + Jy * Jy + Jz * Jz;
+
+            JointsBodyWFEffort[LegNumber][1][0] = 0.0;
+            JointsBodyWFEffort[LegNumber][1][1] = 0.0;
+            JointsBodyWFEffort[LegNumber][1][2] = 0.0;
+
+            if (J_norm2 > 1e-12)
+            {
+                double scale = joint_tau[0] / J_norm2;
+                JointsBodyWFEffort[LegNumber][1][0] = scale * Jx;
+                JointsBodyWFEffort[LegNumber][1][1] = scale * Jy;
+                JointsBodyWFEffort[LegNumber][1][2] = scale * Jz;
+            }
+        }
+
+        // 髋关节和大腿关节电机对小腿关节原点的独立等效力之和
+        {
+            JointsBodyWFEffort[LegNumber][2][0] = 0.0;
+            JointsBodyWFEffort[LegNumber][2][1] = 0.0;
+            JointsBodyWFEffort[LegNumber][2][2] = 0.0;
+
+            for (int j = 0; j < 2; ++j)
+            {
+                double rx = joint_org[2][0] - joint_org[j][0];
+                double ry = joint_org[2][1] - joint_org[j][1];
+                double rz = joint_org[2][2] - joint_org[j][2];
+
+                double Jx = joint_axis[j][1] * rz - joint_axis[j][2] * ry;
+                double Jy = joint_axis[j][2] * rx - joint_axis[j][0] * rz;
+                double Jz = joint_axis[j][0] * ry - joint_axis[j][1] * rx;
+                double J_norm2 = Jx * Jx + Jy * Jy + Jz * Jz;
+
+                if (J_norm2 > 1e-12)
+                {
+                    double scale = joint_tau[j] / J_norm2;
+                    JointsBodyWFEffort[LegNumber][2][0] += scale * Jx;
+                    JointsBodyWFEffort[LegNumber][2][1] += scale * Jy;
+                    JointsBodyWFEffort[LegNumber][2][2] += scale * Jz;
+                }
+            }
+        }
+
+        // 三个及以上关节的目标点三维力估计
+        for (int target = 3; target <= joint_num; ++target)
+        {
+            double Jtau[3] = {0.0, 0.0, 0.0};
+            double JJT[3][3] = {{0.0}};
+            double JJT_inv[3][3];
+
+            double target_x = target == joint_num ? JointsBodyWFPosition[LegNumber][FootNodeIndex][0] : joint_org[target][0];
+            double target_y = target == joint_num ? JointsBodyWFPosition[LegNumber][FootNodeIndex][1] : joint_org[target][1];
+            double target_z = target == joint_num ? JointsBodyWFPosition[LegNumber][FootNodeIndex][2] : joint_org[target][2];
 
             for (int j = 0; j < target; ++j)
             {
-                const double rx = (target == joint_num ? JointsBodyWFPosition[LegNumber][FootNodeIndex][0] : joint_org[target][0]) - joint_org[j][0];
-                const double ry = (target == joint_num ? JointsBodyWFPosition[LegNumber][FootNodeIndex][1] : joint_org[target][1]) - joint_org[j][1];
-                const double rz = (target == joint_num ? JointsBodyWFPosition[LegNumber][FootNodeIndex][2] : joint_org[target][2]) - joint_org[j][2];
+                double rx = target_x - joint_org[j][0];
+                double ry = target_y - joint_org[j][1];
+                double rz = target_z - joint_org[j][2];
 
-                const double J0 = joint_axis[j][1] * rz - joint_axis[j][2] * ry;
-                const double J1 = joint_axis[j][2] * rx - joint_axis[j][0] * rz;
-                const double J2 = joint_axis[j][0] * ry - joint_axis[j][1] * rx;
+                double Jx = joint_axis[j][1] * rz - joint_axis[j][2] * ry;
+                double Jy = joint_axis[j][2] * rx - joint_axis[j][0] * rz;
+                double Jz = joint_axis[j][0] * ry - joint_axis[j][1] * rx;
 
                 if (target == joint_num)
                 {
-                    FootBodyVel_WF[LegNumber][0] += J0 * joint_dq[j];
-                    FootBodyVel_WF[LegNumber][1] += J1 * joint_dq[j];
-                    FootBodyVel_WF[LegNumber][2] += J2 * joint_dq[j];
+                    FootBodyVel_WF[LegNumber][0] += Jx * joint_dq[j];
+                    FootBodyVel_WF[LegNumber][1] += Jy * joint_dq[j];
+                    FootBodyVel_WF[LegNumber][2] += Jz * joint_dq[j];
                 }
 
-                Jtau[0] += J0 * joint_tau[j];
-                Jtau[1] += J1 * joint_tau[j];
-                Jtau[2] += J2 * joint_tau[j];
+                Jtau[0] += Jx * joint_tau[j];
+                Jtau[1] += Jy * joint_tau[j];
+                Jtau[2] += Jz * joint_tau[j];
 
-                JJT[0][0] += J0 * J0;
-                JJT[0][1] += J0 * J1;
-                JJT[0][2] += J0 * J2;
-                JJT[1][1] += J1 * J1;
-                JJT[1][2] += J1 * J2;
-                JJT[2][2] += J2 * J2;
+                JJT[0][0] += Jx * Jx;
+                JJT[0][1] += Jx * Jy;
+                JJT[0][2] += Jx * Jz;
+                JJT[1][1] += Jy * Jy;
+                JJT[1][2] += Jy * Jz;
+                JJT[2][2] += Jz * Jz;
             }
 
             JJT[1][0] = JJT[0][1];
@@ -277,11 +327,14 @@ namespace DataFusion
                 JJT[2][2] += 1e-4;
             }
 
-            for (int i = 0; i < 3; ++i)
-                JointsBodyWFEffort[LegNumber][target][i] = 0.0;
+            int output_index = target == joint_num ? FootNodeIndex : target;
+
+            JointsBodyWFEffort[LegNumber][output_index][0] = 0.0;
+            JointsBodyWFEffort[LegNumber][output_index][1] = 0.0;
+            JointsBodyWFEffort[LegNumber][output_index][2] = 0.0;
 
             if (array_3x3_inverse(JJT, JJT_inv) == _ERROR_NO_ERROR)
-                array_3x3_multiply_vector(JJT_inv, Jtau, JointsBodyWFEffort[LegNumber][target]);
+                array_3x3_multiply_vector(JJT_inv, Jtau, JointsBodyWFEffort[LegNumber][output_index]);
         }
 
         FootBodyTorq_WF[LegNumber][0] = JointsBodyWFPosition[LegNumber][FootNodeIndex][1] * JointsBodyWFEffort[LegNumber][FootNodeIndex][2] - JointsBodyWFPosition[LegNumber][FootNodeIndex][2] * JointsBodyWFEffort[LegNumber][FootNodeIndex][1];
@@ -480,6 +533,7 @@ namespace DataFusion
                     ClusterFootfallHeight(LegNumber, move_dir_z);
                     FootfallPositionRecordTemp[LegNumber][2] = FootfallPositionRecord[LegNumber][2];
                     FootIsOnGroundTemp[LegNumber] = false;
+                    FootfallProbability[LegNumber] = - FootfallProbability[LegNumber];
                 }
             }
         }

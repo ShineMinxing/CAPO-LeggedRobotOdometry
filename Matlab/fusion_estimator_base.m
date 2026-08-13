@@ -3,8 +3,8 @@ cd(fileparts(mfilename('fullpath')));
 
 % CSV_PATH = 'Data/GO2Flat'; DogMode = 98;
 CSV_PATH = 'Data/GO2Stairs'; DogMode = 98;
-% CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 141;
-% CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 142;
+% CSV_PATH = 'Data/MP_XY150Z10'; DogMode = 140;
+% CSV_PATH = 'Data/MW_XY150Z10'; DogMode = 141;
 
 used_lines = 300000;
 

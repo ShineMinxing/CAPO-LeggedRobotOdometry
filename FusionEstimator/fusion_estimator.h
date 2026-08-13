@@ -293,40 +293,19 @@ public:
                 status[IndexStatusOK] = 1;
             legs_pos->UseGo2P();
         }
-        else if (status[IndexInOrOut] == 121){
-            status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 121;
-            if (status[IndexStatusOK] > 999)
-                status[IndexStatusOK] = 1;
-            legs_pos->UseSP();
-        }
         else if (status[IndexInOrOut] == 140){
-            status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 140;
-            if (status[IndexStatusOK] > 999)
-                status[IndexStatusOK] = 1;
-            legs_pos->UseMW_D();
-        }
-        else if (status[IndexInOrOut] == 141){
             status[IndexInOrOut] = 0;
             status[IndexStatusOK] = status[IndexStatusOK] + 141;
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
-            legs_pos->UseMP_A();
+            legs_pos->UseMW_A();
         }
-        else if (status[IndexInOrOut] == 142){
+        else if (status[IndexInOrOut] == 141){
             status[IndexInOrOut] = 0;
             status[IndexStatusOK] = status[IndexStatusOK] + 142;
             if (status[IndexStatusOK] > 999)
                 status[IndexStatusOK] = 1;
             legs_pos->UseMW_B();
-        }
-        else if (status[IndexInOrOut] == 160){
-            status[IndexInOrOut] = 0;
-            status[IndexStatusOK] = status[IndexStatusOK] + 160;
-            if (status[IndexStatusOK] > 999)
-                status[IndexStatusOK] = 1;
-            legs_pos->UseLW();
         }
     }
 
